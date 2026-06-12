@@ -3,317 +3,271 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>R - 跑者無懼</title>
+    <title>R - 跑者無懼 | 運動員名鑑</title>
     
-    <!-- 引入 Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- 引入 FontAwesome 圖標庫 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <!-- 引入 Swiper CSS (負責輪播與滑動) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 
     <style>
-        /* 基礎深色設定 */
-        body {
-            background-color: #121212;
-            color: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            overflow-x: hidden;
+        :root {
+            --apple-dark: #121212;
+            --apple-card: #1c1c1e;
+            --r-accent: #ffffff;
         }
 
-        /* 頂部導覽列 */
+        body {
+            background-color: var(--apple-dark);
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        /* 導覽列 */
         .navbar {
-            background: linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 100%);
-            position: absolute;
-            width: 100%;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, transparent 100%);
             z-index: 1000;
         }
-        
-        /* 自訂 R Logo */
-        .logo-r {
-            font-size: 2rem;
-            font-weight: 900;
-            letter-spacing: 2px;
-            color: #ffffff;
-            text-decoration: none;
-            font-style: italic;
-        }
-        .logo-r:hover {
-            color: #e0e0e0;
-        }
+        .logo-r { font-size: 2.2rem; font-weight: 900; font-style: italic; color: white; text-decoration: none; }
 
-        .search-bar {
-            background-color: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            border-radius: 6px;
-        }
-        
-        .search-bar::placeholder { color: rgba(255, 255, 255, 0.6); }
-        .search-bar:focus {
-            background-color: rgba(255, 255, 255, 0.25);
-            color: white;
-            box-shadow: none;
-            border-color: rgba(255, 255, 255, 0.5);
-        }
-
-        /* 主視覺區塊 (Hero Section) */
+        /* 主視覺區 */
         .hero-section {
-            height: 85vh;
+            height: 70vh;
+            background: url('run.2.jpg') center/cover;
             position: relative;
-            background-image: url('run.2.jpg'); /* 替換成你的跑者大圖 */
-            background-size: cover;
-            background-position: center 20%;
         }
-
-        /* 左側黑色漸層遮罩，讓文字清楚顯示 */
         .hero-overlay {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(to right, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.5) 55%, rgba(0,0,0,0) 100%);
+            inset: 0;
+            background: linear-gradient(to right, rgba(0,0,0,0.9) 0%, transparent 70%);
             display: flex;
             align-items: center;
+            padding: 0 5%;
         }
 
-        /* 標題與標籤樣式 */
-        .hero-badge {
-            border: 1px solid rgba(255,255,255,0.5);
-            border-radius: 20px;
-            padding: 4px 14px;
-            font-size: 0.85rem;
-            background: rgba(0,0,0,0.4);
-            backdrop-filter: blur(4px);
-        }
-
-        .hero-title {
-            font-size: 5.5rem;
-            font-weight: 900;
-            letter-spacing: -2px;
-            text-shadow: 2px 2px 10px rgba(0,0,0,0.7);
-            margin-bottom: 0.5rem;
-        }
-
-        /* 按鈕樣式 */
-        .btn-play {
-            background-color: #ffffff;
-            color: #000000;
-            font-weight: bold;
-            border-radius: 8px;
-            padding: 10px 36px;
-            font-size: 1.1rem;
-            transition: all 0.2s;
-        }
-        .btn-play:hover { background-color: #d4d4d4; transform: scale(1.02); }
-
-        .btn-add {
-            background-color: rgba(255, 255, 255, 0.15);
-            color: #ffffff;
-            border-radius: 50%;
-            width: 48px;
-            height: 48px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid rgba(255,255,255,0.2);
-            backdrop-filter: blur(5px);
-            transition: all 0.2s;
-        }
-        .btn-add:hover { background-color: rgba(255, 255, 255, 0.3); transform: scale(1.05); }
-
-        /* 底部橫向滑動片單 */
-        .carousel-section {
-            padding: 40px 4%;
-            margin-top: -80px; /* 稍微往上疊加在背景圖上 */
-            position: relative;
-            z-index: 10;
-            background: linear-gradient(to top, #121212 85%, rgba(18,18,18,0) 100%);
-        }
-
-        .section-title {
-            font-weight: bold;
-            font-size: 1.3rem;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-            transition: color 0.2s;
-        }
-        .section-title:hover { color: #aaaaaa; }
-
-        /* 影片卡片樣式 (調整為適合人物肖像的直式比例) */
-        .movie-card {
+        /* 頂部縮圖輪播 */
+        .carousel-section { padding: 40px 5%; margin-top: -100px; z-index: 10; position: relative; }
+        .athlete-thumb {
             border-radius: 12px;
             overflow: hidden;
-            aspect-ratio: 2 / 3; /* 改為直立海報比例 */
-            background-color: #2a2a2a;
-            position: relative;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            aspect-ratio: 2/3;
             cursor: pointer;
+            transition: 0.3s;
+            border: 1px solid rgba(255,255,255,0.1);
         }
-        .movie-card:hover {
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
-            outline: 2px solid rgba(255,255,255,0.8);
-            outline-offset: -2px;
+        .athlete-thumb:hover { transform: scale(1.05); border-color: white; }
+        .athlete-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* 運動員名鑑區塊 (Athlete Roster) */
+        .roster-section { padding: 80px 5%; }
+        .roster-title { font-size: 2.5rem; font-weight: 800; margin-bottom: 50px; text-align: center; }
+
+        .roster-card {
+            background-color: var(--apple-card);
+            border-radius: 24px;
+            overflow: hidden;
+            margin-bottom: 30px;
+            display: flex;
+            height: 400px;
+            transition: 0.5s;
+            border: 1px solid #333;
+            position: relative;
+        }
+        /* 當被跳轉高亮時的樣式 */
+        .roster-card.highlight {
+            border-color: #fff;
+            box-shadow: 0 0 30px rgba(255,255,255,0.2);
+        }
+
+        /* 左側照片淡入中間的效果 */
+        .roster-img-box {
+            flex: 0 0 45%;
+            position: relative;
+            overflow: hidden;
+        }
+        .roster-img-box img {
+            width: 100%; height: 100%; object-fit: cover;
+            mask-image: linear-gradient(to right, black 70%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to right, black 70%, transparent 100%);
+        }
+
+        /* 右側故事內容 */
+        .roster-content {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .athlete-name { font-size: 2rem; font-weight: 800; margin-bottom: 5px; }
+        .athlete-title { color: #888; font-size: 0.9rem; margin-bottom: 15px; letter-spacing: 1px; }
+        
+        /* 可展開系統 */
+        .story-short { opacity: 0.8; line-height: 1.6; }
+        .story-full { 
+            display: none; 
+            margin-top: 20px; 
+            padding-top: 20px; 
+            border-top: 1px solid #333;
+            font-size: 0.95rem;
+            line-height: 1.8;
+            color: #ccc;
         }
         
-        .movie-card img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .card-overlay {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 60%, transparent 100%);
-            padding: 30px 15px 15px;
-            text-align: center;
-        }
-
-        .card-title {
-            margin: 0;
-            font-size: 1.1rem;
-            font-weight: bold;
-            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
-        }
-
-        /* 系統選單與視窗深色風格 */
-        .offcanvas-dark {
-            background-color: #1c1c1e;
+        .btn-expand {
+            background: none;
+            border: 1px solid #555;
             color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-top: 15px;
+            align-self: flex-start;
+            transition: 0.3s;
         }
-        .modal-content-dark {
-            background-color: #1c1c1e;
-            color: white;
-            border: 1px solid #333;
+        .btn-expand:hover { background: white; color: black; }
+
+        /* 響應式調整 */
+        @media (max-width: 1200px) {
+            .roster-card { height: auto; flex-direction: column; }
+            .roster-img-box { flex: 0 0 300px; }
+            .roster-img-box img { mask-image: linear-gradient(to bottom, black 70%, transparent 100%); }
         }
     </style>
 </head>
 <body>
 
-    <!-- 導覽列 -->
-    <nav class="navbar navbar-expand-lg navbar-dark pt-3 px-4">
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top px-4">
         <div class="container-fluid">
-            <!-- 修改為 R Logo -->
-            <a class="navbar-brand me-4 d-flex align-items-center" href="#">
-                <span class="logo-r">R</span>
-            </a>
-            
-            <div class="collapse navbar-collapse">
-                <ul class="navbar-nav gap-3">
+            <a class="logo-r" href="#">R</a>
+            <div class="collapse navbar-collapse justify-content-center">
+                <ul class="navbar-nav gap-4">
                     <li class="nav-item"><a class="nav-link text-white fw-bold" href="#">首頁</a></li>
-                    <!-- 開啟右側選單 -->
-                    <li class="nav-item">
-                        <a class="nav-link text-white-50 fw-bold hover-white" href="#" data-bs-toggle="offcanvas" data-bs-target="#menuOffcanvas">選單</a>
-                    </li>
-                    <!-- 開啟介紹視窗 -->
-                    <li class="nav-item">
-                        <a class="nav-link text-white-50 fw-bold hover-white" href="#" data-bs-toggle="modal" data-bs-target="#introModal">介紹</a>
-                    </li>
+                    <li class="nav-item"><a class="nav-link text-white-50" href="#roster">名鑑</a></li>
+                    <li class="nav-item"><a class="nav-link text-white-50" href="#">介紹</a></li>
                 </ul>
             </div>
-
-            <div class="d-flex align-items-center gap-3">
-                <div class="input-group input-group-sm" style="width: 220px;">
-                    <span class="input-group-text bg-transparent border-0 text-white ps-2"><i class="fa-solid fa-search"></i></span>
-                    <input type="text" class="form-control search-bar" placeholder="搜尋">
-                </div>
-                <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center cursor-pointer" style="width: 34px; height: 34px;">
-                    <i class="fa-solid fa-user text-white small"></i>
-                </div>
-            </div>
+            <div class="text-white"><i class="fa-solid fa-magnifying-glass"></i></div>
         </div>
     </nav>
 
-    <!-- 主視覺區塊 -->
     <header class="hero-section">
         <div class="hero-overlay">
-            <div class="container-fluid px-5">
-                <div class="row">
-                    <div class="col-md-7 col-lg-5 text-start mt-4">
-                        <span class="hero-badge text-white d-inline-block mb-3">熱門運動紀錄片</span>
-                        <!-- 標題 -->
-                        <h1 class="hero-title">跑者無懼</h1>
-                        
-                        <div class="d-flex align-items-center gap-3 mb-3 text-light small fw-bold">
-                            <span class="bg-dark rounded px-2 py-1 border border-secondary"><i class="fa-brands fa-apple"></i> 紀錄片 · 體育</span>
-                            <span class="border border-secondary rounded px-2">13+</span>
-                        </div>
-                        
-                        <p class="fs-6 text-light mb-4" style="line-height: 1.6; opacity: 0.9;">
-                            一群頂尖田徑運動員在賽道上挑戰人體極限，汗水、淚水與無數次的起跑，只為了在終點線前超越昨天的自己。深入了解跑者背後堅韌不拔的故事。
-                        </p>
-                        
-                        <div class="d-flex gap-3 mt-4">
-                            <button class="btn btn-play shadow"><i class="fa-solid fa-play me-2"></i>播放</button>
-                            <button class="btn btn-add" title="加入片單"><i class="fa-solid fa-plus fs-5"></i></button>
-                        </div>
-                    </div>
-                </div>
+            <div class="animate__animated animate__fadeInLeft">
+                <span class="badge rounded-pill bg-danger mb-3">傳奇跑者系列</span>
+                <h1 class="display-1 fw-black">跑者無懼</h1>
+                <p class="fs-5 text-secondary">每個起點背後，都是一個不被挫敗擊倒的故事。</p>
             </div>
         </div>
     </header>
 
-    <!-- 底部橫向滑動名單 -->
     <section class="carousel-section">
-        <h2 class="section-title">在 R 上繼續觀看 <i class="fa-solid fa-chevron-right ms-2 fs-6 mt-1 text-secondary"></i></h2>
-        
-        <!-- Swiper 輪播容器 -->
-        <div class="swiper mySwiper pt-2 pb-4">
+        <div class="swiper mySwiper">
             <div class="swiper-wrapper">
-                
-                <!-- 運動員卡片 1 -->
-                <div class="swiper-slide" style="width: 220px;">
-                    <div class="movie-card shadow">
-                        <img src="Eliud Kipchoge.jpg" alt="Eliud Kipchoge">
-                        <div class="card-overlay">
-                            <h5 class="card-title">Eliud Kipchoge</h5>
-                        </div>
+                <div class="swiper-slide" style="width: 180px;">
+                    <div class="athlete-thumb" onclick="jumpToAthlete('kipchoge')">
+                        <img src="Eliud Kipchoge.jpg" alt="Kipchoge">
                     </div>
                 </div>
-                
-                <!-- 運動員卡片 2 -->
-                <div class="swiper-slide" style="width: 220px;">
-                    <div class="movie-card shadow">
-                        <img src="Justin Gallegos.jpg" alt="Justin Gallegos">
-                        <div class="card-overlay">
-                            <h5 class="card-title">Justin Gallegos</h5>
-                        </div>
+                <div class="swiper-slide" style="width: 180px;">
+                    <div class="athlete-thumb" onclick="jumpToAthlete('gallegos')">
+                        <img src="Justin Gallegos.jpg" alt="Gallegos">
                     </div>
                 </div>
-                
-                <!-- 運動員卡片 3 -->
-                <div class="swiper-slide" style="width: 220px;">
-                    <div class="movie-card shadow">
-                        <img src="mofarah.jpg" alt="Mo Farah">
-                        <div class="card-overlay">
-                            <h5 class="card-title">Mo Farah</h5>
-                        </div>
+                <div class="swiper-slide" style="width: 180px;">
+                    <div class="athlete-thumb" onclick="jumpToAthlete('farah')">
+                        <img src="mofarah.jpg" alt="Farah">
                     </div>
                 </div>
+                <div class="swiper-slide" style="width: 180px;">
+                    <div class="athlete-thumb" onclick="jumpToAthlete('hassan')">
+                        <img src="Sifan Hassan.jpg" alt="Hassan">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="roster" class="roster-section">
+        <h2 class="roster-title">傳奇名鑑</h2>
+        
+        <div class="container-fluid">
+            <div class="row row-cols-1 row-cols-xl-2 g-4">
                 
-                <!-- 運動員卡片 4 -->
-                <div class="swiper-slide" style="width: 220px;">
-                    <div class="movie-card shadow">
-                        <img src="Sifan Hassan.jpg" alt="Sifan Hassan">
-                        <div class="card-overlay">
-                            <h5 class="card-title">Sifan Hassan</h5>
+                <div class="col">
+                    <div id="kipchoge" class="roster-card">
+                        <div class="roster-img-box">
+                            <img src="Eliud KipchogeContent.jpg" alt="Kipchoge">
+                        </div>
+                        <div class="roster-content">
+                            <div class="athlete-name">Eliud Kipchoge</div>
+                            <div class="athlete-title">史上最偉大馬拉松跑者</div>
+                            <div class="story-short">向世界證明人類能在兩小時內完成馬拉松的肯亞傳奇。</div>
+                            <div class="story-full">
+                                <strong>身世與經歷：</strong>出生肯亞高地農村，由母親撫養長大。受教練 Patrick Sang 啟發開啟長達18年的師徒情誼。<br>
+                                <strong>努力與挫敗：</strong>2012年落選倫敦奧運資格後轉戰馬拉松，這項決定改變了一生。他在前11場比賽中贏得10場。<br>
+                                <strong>最佳成績：</strong>柏林馬 2:01:39 世界紀錄，Breaking2 計畫跑出 2:00:25。
+                            </div>
+                            <button class="btn-expand" onclick="toggleStory(this)">展開故事</button>
                         </div>
                     </div>
                 </div>
 
-                <!-- 預留卡片空間 (維持排版用) -->
-                <div class="swiper-slide" style="width: 220px;">
-                    <div class="movie-card shadow d-flex align-items-center justify-content-center" style="background-color: #1a1a1a;">
-                        <div class="text-center text-secondary">
-                            <i class="fa-solid fa-ellipsis fs-1 mb-2"></i>
-                            <p class="mb-0 fw-bold small">查看更多</p>
+                <div class="col">
+                    <div id="gallegos" class="roster-card">
+                        <div class="roster-img-box">
+                            <img src="Justin GallegosContext.jpg" alt="Gallegos">
+                        </div>
+                        <div class="roster-content">
+                            <div class="athlete-name">Justin Gallegos</div>
+                            <div class="athlete-title">腦性麻痺職業跑者</div>
+                            <div class="story-short">「世界上沒有所謂的殘疾。」打破身體限制的跑者。</div>
+                            <div class="story-full">
+                                <strong>身世與經歷：</strong>患有腦性麻痺，五歲前需依賴助行器，學習走路對他而言都極其困難。<br>
+                                <strong>努力與挫敗：</strong>高中開始跑步以增強體能，起初經常摔倒但從未放棄。與 Nike 合作開發專屬支撐跑鞋。<br>
+                                <strong>最佳成績：</strong>2018年完成半程馬拉松（21公里），目前正挑戰全程馬拉松夢想。
+                            </div>
+                            <button class="btn-expand" onclick="toggleStory(this)">展開故事</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col">
+                    <div id="farah" class="roster-card">
+                        <div class="roster-img-box">
+                            <img src="Mo FarahContext.jpg" alt="Farah">
+                        </div>
+                        <div class="roster-content">
+                            <div class="athlete-name">Mo Farah</div>
+                            <div class="athlete-title">英國國家寶藏 / 長跑之王</div>
+                            <div class="story-short">從非法販運童工到大英帝國爵士，寫下最動人的逆境劇本。</div>
+                            <div class="story-full">
+                                <strong>身世與經歷：</strong>原名 Hussein，九歲時遭非法販運至英國淪為童工。直到體育老師發現天賦才迎來轉機。<br>
+                                <strong>努力與挫敗：</strong>克服身分問題與文化隔閡，在14歲透過請願取得英國身分，正式開啟田徑之路。<br>
+                                <strong>最佳成績：</strong>多面奧運 5000/10000 公尺金牌，田徑史上最成功的長距離跑者之一。
+                            </div>
+                            <button class="btn-expand" onclick="toggleStory(this)">展開故事</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col">
+                    <div id="hassan" class="roster-card">
+                        <div class="roster-img-box">
+                            <img src="Sifan HassanContext.jpg" alt="Hassan">
+                        </div>
+                        <div class="roster-content">
+                            <div class="athlete-name">Sifan Hassan</div>
+                            <div class="athlete-title">全方位天才 / 逆轉女王</div>
+                            <div class="story-short">即便跌倒也要爬過終點，史無前例的跨距離獎牌得主。</div>
+                            <div class="story-full">
+                                <strong>身世與經歷：</strong>衣索比亞出生，15歲以難民身分逃往荷蘭。在求學期間開始接觸跑步。<br>
+                                <strong>努力與挫敗：</strong>以驚人毅力著稱。東京奧運重摔後爬起奪冠；巴黎奧運包攬5000/10000銅牌後，更奪下馬拉松金牌。<br>
+                                <strong>最佳成績：</strong>一英里 4:12.33 紀錄保持者。巴黎奧運馬拉松以破紀錄成績奪金。
+                            </div>
+                            <button class="btn-expand" onclick="toggleStory(this)">展開故事</button>
                         </div>
                     </div>
                 </div>
@@ -322,83 +276,53 @@
         </div>
     </section>
 
-    <!-- ============================================== -->
-    <!-- 預留系統區塊 1：側邊選單 (Offcanvas) -->
-    <!-- ============================================== -->
-    <div class="offcanvas offcanvas-end offcanvas-dark" tabindex="-1" id="menuOffcanvas" aria-labelledby="menuOffcanvasLabel">
-        <div class="offcanvas-header border-bottom border-secondary">
-            <h5 class="offcanvas-title fw-bold" id="menuOffcanvasLabel">網站選單</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-        </div>
-        <div class="offcanvas-body">
-            <p class="text-muted small mb-4">請在這裡填寫您的選單內容、網站導覽列或分類標籤。</p>
-            
-            <!-- 示範選單結構 -->
-            <ul class="list-unstyled fw-bold fs-5 gap-3 d-flex flex-column">
-                <li><a href="#" class="text-white text-decoration-none hover-secondary"><i class="fa-solid fa-film w-25 text-center"></i> 紀錄片總覽</a></li>
-                <li><a href="#" class="text-white text-decoration-none hover-secondary"><i class="fa-solid fa-person-running w-25 text-center"></i> 運動員名鑑</a></li>
-                <li><a href="#" class="text-white text-decoration-none hover-secondary"><i class="fa-solid fa-medal w-25 text-center"></i> 賽事精華</a></li>
-                <li><a href="#" class="text-white text-decoration-none hover-secondary"><i class="fa-solid fa-gear w-25 text-center"></i> 帳號設定</a></li>
-            </ul>
-        </div>
-    </div>
+    <footer class="py-5 text-center text-secondary border-top border-dark">
+        <p>&copy; 2024 R - Runner Exhibition Project</p>
+    </footer>
 
-    <!-- ============================================== -->
-    <!-- 預留系統區塊 2：介紹彈出視窗 (Modal) -->
-    <!-- ============================================== -->
-    <div class="modal fade" id="introModal" tabindex="-1" aria-labelledby="introModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content modal-content-dark shadow-lg">
-                <div class="modal-header border-bottom border-secondary">
-                    <h5 class="modal-title fw-bold fs-4" id="introModalLabel">關於跑者無懼 (Introduction)</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <div class="row align-items-center">
-                        <div class="col-md-5 mb-3 mb-md-0">
-                            <!-- 可以在這裡放一張代表圖片 -->
-                            <div class="bg-secondary rounded w-100 d-flex align-items-center justify-content-center" style="aspect-ratio: 1/1;">
-                                <i class="fa-solid fa-image fa-3x text-dark"></i>
-                            </div>
-                        </div>
-                        <div class="col-md-7">
-                            <h4 class="fw-bold mb-3">挑戰極限的證明</h4>
-                            <p class="text-light" style="line-height: 1.7; opacity: 0.8;">
-                                這裡預留給您填寫關於這個專案、影片或運動員的詳細介紹背景故事。<br><br>
-                                您可以在這裡撰寫導演的話、拍攝理念，或是這群傳奇跑者如何改變世界田徑史的精采事蹟。
-                            </p>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer border-top border-secondary">
-                    <button type="button" class="btn btn-secondary text-white" data-bs-dismiss="modal">關閉介紹</button>
-                    <button type="button" class="btn btn-light text-dark fw-bold">了解更多</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 引入 Bootstrap JS 與 Swiper JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     
-    <!-- 啟動 Swiper 滑動功能 -->
     <script>
+        // 初始化縮圖滑動
         var swiper = new Swiper(".mySwiper", {
-            slidesPerView: "auto", // 根據 CSS 設定的寬度自動顯示數量
-            spaceBetween: 20,      // 卡片間距
-            freeMode: true,        // 允許自由滑動
-            mousewheel: true,      // 允許使用滑鼠滾輪滑動
+            slidesPerView: "auto",
+            spaceBetween: 20,
+            freeMode: true,
         });
 
-        // 幫導覽列加入簡單的 hover 效果 CSS
-        const style = document.createElement('style');
-        style.innerHTML = `
-            .hover-white:hover { color: #ffffff !important; transition: 0.2s; }
-            .hover-secondary:hover { color: #aaaaaa !important; transition: 0.2s; }
-            .cursor-pointer { cursor: pointer; }
-        `;
-        document.head.appendChild(style);
+        // 跳轉運動員功能
+        function jumpToAthlete(id) {
+            const element = document.getElementById(id);
+            if (element) {
+                // 移除所有高亮
+                document.querySelectorAll('.roster-card').forEach(c => c.classList.remove('highlight', 'animate__animated', 'animate__pulse'));
+                
+                // 平滑滾動到目標 (CSS 已設定)
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                // 加入柔和動畫效果
+                setTimeout(() => {
+                    element.classList.add('highlight', 'animate__animated', 'animate__pulse');
+                }, 500);
+            }
+        }
+
+        // 展開故事系統
+        function toggleStory(btn) {
+            const cardContent = btn.parentElement;
+            const fullStory = cardContent.querySelector('.story-full');
+            const shortStory = cardContent.querySelector('.story-short');
+            
+            if (fullStory.style.display === "block") {
+                fullStory.style.display = "none";
+                btn.innerText = "展開故事";
+            } else {
+                fullStory.style.display = "block";
+                fullStory.classList.add('animate__animated', 'animate__fadeIn');
+                btn.innerText = "收起故事";
+            }
+        }
     </script>
 </body>
 </html>
