@@ -5,16 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>R - 個人訓練儀表板</title>
     
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <!-- Leaflet CSS (地圖) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Animate CSS (動畫) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 
     <style>
         :root {
             --bg-dark: #0a0a0c;
-            --card-dark: #161618;
-            --r-green: #2ecc71;
-            --r-purple: #9b59b6;
+            --card-dark: #1c1c1e; /* 稍微調亮一點的深灰，符合 Apple 質感 */
+            --r-green: #32d74b;  /* Apple Fitness 綠 */
+            --r-purple: #bf5af2; /* Apple Fitness 紫 */
+            --r-orange: #ff9f0a;
             --text-main: #ffffff;
             --text-muted: #8e8e93;
         }
@@ -22,18 +28,19 @@
         body {
             background-color: var(--bg-dark);
             color: var(--text-main);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
             overflow-x: hidden;
         }
 
         /* 側邊欄 */
         .sidebar {
-            background-color: var(--card-dark);
+            background-color: var(--bg-dark);
             height: 100vh;
-            border-right: 1px solid #222;
+            border-right: 1px solid rgba(255,255,255,0.1);
             position: fixed;
             width: 250px;
             padding: 30px 20px;
+            z-index: 100;
         }
         .nav-item-r {
             display: flex;
@@ -41,16 +48,21 @@
             padding: 12px 15px;
             color: var(--text-muted);
             text-decoration: none;
-            border-radius: 10px;
+            border-radius: 12px;
             margin-bottom: 8px;
-            transition: 0.3s;
+            transition: all 0.2s ease;
             font-weight: 600;
+            cursor: pointer;
         }
-        .nav-item-r:hover, .nav-item-r.active {
+        .nav-item-r:hover {
             background-color: rgba(255, 255, 255, 0.05);
             color: var(--text-main);
         }
-        .nav-item-r i { width: 30px; font-size: 1.1rem; }
+        .nav-item-r.active {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+        }
+        .nav-item-r i { width: 30px; font-size: 1.1rem; text-align: center; margin-right: 8px; }
 
         /* 主內容區 */
         .main-content {
@@ -58,14 +70,28 @@
             padding: 40px 5%;
         }
 
+        /* 頁籤內容控制 */
+        .tab-pane {
+            display: none;
+            animation: fadeIn 0.4s ease forwards;
+        }
+        .tab-pane.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         /* 玻璃質感卡片 */
         .r-card {
             background-color: var(--card-dark);
-            border-radius: 20px;
+            border-radius: 24px;
             padding: 24px;
             border: 1px solid rgba(255, 255, 255, 0.05);
             margin-bottom: 24px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
 
         /* 地圖軌跡區塊 */
@@ -74,7 +100,7 @@
             height: 350px;
             border-radius: 16px;
             overflow: hidden;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
         #runMap { height: 100%; width: 100%; z-index: 1; }
         
@@ -84,10 +110,10 @@
             left: 20px;
             right: 20px;
             z-index: 2;
-            background: rgba(22, 22, 24, 0.75);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-radius: 16px;
+            background: rgba(28, 28, 30, 0.75);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border-radius: 20px;
             padding: 20px;
             border: 1px solid rgba(255,255,255,0.1);
             display: flex;
@@ -96,7 +122,7 @@
         
         .stat-box { text-align: center; }
         .stat-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
-        .stat-value { font-size: 1.5rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+        .stat-value { font-size: 1.6rem; font-weight: 800; font-variant-numeric: tabular-nums; }
         .text-green { color: var(--r-green); }
 
         /* 訓練日曆列表 */
@@ -104,37 +130,88 @@
             display: flex;
             align-items: center;
             padding: 15px 0;
-            border-bottom: 1px solid #222;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
         }
         .calendar-item:last-child { border-bottom: none; }
-        .cal-date {
-            width: 50px; text-align: center; margin-right: 15px;
-        }
+        .cal-date { width: 50px; text-align: center; margin-right: 15px; }
         .cal-day { font-size: 0.8rem; color: var(--text-muted); font-weight: bold; }
         .cal-num { font-size: 1.4rem; font-weight: 800; }
         
-        .workout-tag {
-            width: 4px; height: 40px; border-radius: 4px; margin-right: 15px;
-        }
+        .workout-tag { width: 4px; height: 40px; border-radius: 4px; margin-right: 15px; }
         .tag-purple { background-color: var(--r-purple); }
         .tag-green { background-color: var(--r-green); }
 
+        /* 黑暗模式 Modal 彈出視窗 */
+        .modal-content-dark {
+            background-color: var(--card-dark);
+            color: var(--text-main);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 24px;
+        }
+        .form-control-dark {
+            background-color: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            border-radius: 12px;
+        }
+        .form-control-dark:focus {
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+            border-color: var(--r-green);
+            box-shadow: none;
+        }
+
+        /* 按鈕樣式 */
+        .btn-r-primary {
+            background-color: var(--text-main);
+            color: var(--bg-dark);
+            font-weight: 700;
+            border-radius: 20px;
+            transition: 0.2s;
+        }
+        .btn-r-primary:hover { background-color: #e0e0e0; transform: scale(1.02); }
+
         @media (max-width: 768px) {
-            .sidebar { transform: translateX(-100%); z-index: 1000; }
-            .main-content { margin-left: 0; padding: 20px; }
+            .sidebar { transform: translateX(-100%); transition: 0.3s; }
+            .sidebar.show { transform: translateX(0); }
+            .main-content { margin-left: 0; padding: 20px; padding-top: 70px; }
             .map-overlay-stats { flex-wrap: wrap; gap: 15px; justify-content: space-around; }
+            .mobile-header { display: flex !important; }
+        }
+        
+        /* 手機版頂部導覽列 (僅在小螢幕顯示) */
+        .mobile-header {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 60px;
+            background: rgba(10, 10, 12, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 99;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
         }
     </style>
 </head>
 <body>
 
-    <nav class="sidebar">
+    <!-- 手機版頂部導覽列 -->
+    <div class="mobile-header">
+        <span style="font-size: 1.5rem; font-weight: 900; font-style: italic;">R</span>
+        <button class="btn btn-link text-white" onclick="toggleSidebar()"><i class="fa-solid fa-bars fs-4"></i></button>
+    </div>
+
+    <!-- 側邊導覽列 -->
+    <nav class="sidebar" id="sidebar">
         <a href="index.html" class="text-white text-decoration-none d-flex align-items-center mb-5 mt-2 px-3">
             <span style="font-size: 2rem; font-weight: 900; font-style: italic;">R</span>
             <span class="ms-3 fw-bold fs-5 text-secondary">Dashboard</span>
         </a>
 
-        <div class="mb-4 px-3 d-flex align-items-center gap-3">
+        <div class="mb-5 px-3 d-flex align-items-center gap-3">
+            <!-- 替換成真實的圖片路徑 -->
             <div class="rounded-circle bg-secondary" style="width: 45px; height: 45px; background: url('image/Eliud Kipchoge.jpg') center/cover;"></div>
             <div>
                 <div class="fw-bold fs-6">商逢育</div>
@@ -142,211 +219,429 @@
             </div>
         </div>
 
-        <a href="#" class="nav-item-r active"><i class="fa-solid fa-chart-line"></i> 訓練總覽</a>
-        <a href="#" class="nav-item-r"><i class="fa-solid fa-calendar-days"></i> 專屬課表</a>
-        <a href="#" class="nav-item-r"><i class="fa-solid fa-route"></i> 活動紀錄</a>
-        <a href="#" class="nav-item-r"><i class="fa-solid fa-trophy"></i> 個人成就</a>
+        <div class="nav-item-r active" onclick="switchTab('tab-overview', this)">
+            <i class="fa-solid fa-chart-pie"></i> 訓練總覽
+        </div>
+        <div class="nav-item-r" onclick="switchTab('tab-schedule', this)">
+            <i class="fa-solid fa-calendar-days"></i> 專屬課表
+        </div>
+        <div class="nav-item-r" onclick="switchTab('tab-records', this)">
+            <i class="fa-solid fa-route"></i> 活動紀錄
+        </div>
+        <div class="nav-item-r" onclick="switchTab('tab-achievements', this)">
+            <i class="fa-solid fa-medal"></i> 個人成就
+        </div>
         
-        <div class="mt-5 px-3">
+        <div class="mt-5 px-3 position-absolute bottom-0 mb-4">
             <div class="stat-label mb-2">設備連線狀況</div>
             <div class="d-flex align-items-center gap-2 text-muted" style="font-size: 0.85rem;">
-                <i class="fa-solid fa-stopwatch text-success"></i> Garmin Forerunner 965
+                <i class="fa-solid fa-stopwatch" style="color: var(--r-green);"></i> Garmin Forerunner 965
             </div>
         </div>
     </nav>
 
+    <!-- 主內容區 -->
     <main class="main-content">
-        <div class="d-flex justify-content-between align-items-end mb-4">
-            <div>
-                <h2 class="fw-bold mb-1">早安，準備好今天的挑戰了嗎？</h2>
-                <p class="text-muted">這是你本週的訓練摘要與最新活動紀錄。</p>
-            </div>
-            <button class="btn btn-outline-light rounded-pill px-4 fw-bold">
-                <i class="fa-solid fa-plus me-2"></i>手動新增
-            </button>
-        </div>
-
-        <div class="r-card p-2 p-md-3">
-            <div class="d-flex align-items-center px-3 pt-2 mb-3">
-                <div class="rounded bg-purple me-3" style="width:30px; height:30px; background-color: var(--r-purple); display:flex; justify-content:center; align-items:center;">
-                    <i class="fa-solid fa-person-running text-white"></i>
-                </div>
+        
+        <!-- ========================================== -->
+        <!-- 頁籤 1：訓練總覽 (預設顯示) -->
+        <!-- ========================================== -->
+        <div id="tab-overview" class="tab-pane active">
+            <div class="d-flex justify-content-between align-items-end mb-4">
                 <div>
-                    <h5 class="fw-bold mb-0">11mi Long Run (長距離訓練)</h5>
-                    <div class="text-muted small"><i class="fa-regular fa-clock me-1"></i> 昨天 上午 06:30 · 台北市河濱公園</div>
+                    <h2 class="fw-bold mb-1">早安，準備好今天的挑戰了嗎？</h2>
+                    <p class="text-muted">這是你本週的訓練摘要與最新活動紀錄。</p>
+                </div>
+                <!-- 觸發手動新增 Modal -->
+                <button class="btn btn-outline-light rounded-pill px-4 fw-bold d-none d-md-block" data-bs-toggle="modal" data-bs-target="#addRunModal">
+                    <i class="fa-solid fa-plus me-2"></i>手動新增
+                </button>
+            </div>
+
+            <!-- 最新一筆跑步紀錄 -->
+            <div class="r-card p-2 p-md-3">
+                <div class="d-flex align-items-center px-3 pt-2 mb-3">
+                    <div class="rounded bg-purple me-3 shadow-sm" style="width:36px; height:36px; background-color: var(--r-purple); display:flex; justify-content:center; align-items:center;">
+                        <i class="fa-solid fa-person-running text-white"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0" id="dash-run-title">11mi Long Run (長距離訓練)</h5>
+                        <div class="text-muted small"><i class="fa-regular fa-clock me-1"></i> <span id="dash-run-time">昨天 上午 06:30</span> · 台北市河濱公園</div>
+                    </div>
+                </div>
+
+                <div class="map-container">
+                    <div id="runMap"></div>
+                    <!-- 浮動數據面板 -->
+                    <div class="map-overlay-stats shadow-lg">
+                        <div class="stat-box">
+                            <div class="stat-label">距離</div>
+                            <div class="stat-value"><span id="dash-val-dist">17.73</span><span class="fs-6 text-muted ms-1">KM</span></div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">時間</div>
+                            <div class="stat-value" id="dash-val-time">1:40:38</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">平均配速</div>
+                            <div class="stat-value text-green"><span id="dash-val-pace">5'40"</span><span class="fs-6 text-muted ms-1">/km</span></div>
+                        </div>
+                        <div class="stat-box d-none d-sm-block">
+                            <div class="stat-label">平均心率</div>
+                            <div class="stat-value">151<span class="fs-6 text-danger ms-1"><i class="fa-solid fa-heart animate__animated animate__pulse animate__infinite"></i></span></div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="map-container">
-                <div id="runMap"></div>
-                <div class="map-overlay-stats shadow-lg">
-                    <div class="stat-box">
-                        <div class="stat-label">距離</div>
-                        <div class="stat-value">17.73<span class="fs-6 text-muted ms-1">KM</span></div>
+            <div class="row g-4">
+                <!-- 訓練日曆 -->
+                <div class="col-lg-6">
+                    <div class="r-card h-100">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="fw-bold mb-0">即將到來的課表</h5>
+                            <span class="badge bg-dark border border-secondary text-light">第 4 週 / 共 16 週</span>
+                        </div>
+
+                        <!-- 過去的課表 (已完成) -->
+                        <div class="calendar-item" style="opacity: 0.6;">
+                            <div class="cal-date">
+                                <div class="cal-day">MON</div><div class="cal-num">14</div>
+                            </div>
+                            <div class="workout-tag tag-green"></div>
+                            <div class="flex-grow-1">
+                                <h6 class="fw-bold mb-1">輕鬆跑 (Easy Run)</h6>
+                                <div class="text-muted small">目標: 7.0 KM · 配速 6'15"</div>
+                            </div>
+                            <i class="fa-solid fa-circle-check fs-4" style="color: var(--r-green);"></i>
+                        </div>
+
+                        <!-- 今天的課表 (可點擊互動) -->
+                        <div class="calendar-item">
+                            <div class="cal-date">
+                                <div class="cal-day text-white">WED</div><div class="cal-num text-white">16</div>
+                            </div>
+                            <div class="workout-tag tag-purple"></div>
+                            <div class="flex-grow-1">
+                                <h6 class="fw-bold mb-1">間歇訓練 (Intervals)</h6>
+                                <div class="text-muted small">目標: 800m x 6 趟 · 恢復 90秒</div>
+                            </div>
+                            <!-- 互動按鈕：觸發 Modal -->
+                            <div id="workout-action-btn">
+                                <button class="btn btn-sm btn-r-primary px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#startWorkoutModal">今日開始</button>
+                            </div>
+                        </div>
+
+                        <!-- 未來的課表 (鎖定) -->
+                        <div class="calendar-item">
+                            <div class="cal-date">
+                                <div class="cal-day">SUN</div><div class="cal-num">20</div>
+                            </div>
+                            <div class="workout-tag" style="background-color: var(--r-orange);"></div>
+                            <div class="flex-grow-1">
+                                <h6 class="fw-bold mb-1">長距離訓練 (LSD)</h6>
+                                <div class="text-muted small">目標: 21.0 KM · 保持心率區間 2</div>
+                            </div>
+                            <i class="fa-solid fa-lock fs-5 text-muted"></i>
+                        </div>
                     </div>
-                    <div class="stat-box">
-                        <div class="stat-label">時間</div>
-                        <div class="stat-value">1:40:38</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="stat-label">平均配速</div>
-                        <div class="stat-value text-green">5'40"<span class="fs-6 text-muted ms-1">/km</span></div>
-                    </div>
-                    <div class="stat-box d-none d-sm-block">
-                        <div class="stat-label">平均心率</div>
-                        <div class="stat-value">151<span class="fs-6 text-danger ms-1"><i class="fa-solid fa-heart"></i></span></div>
+                </div>
+
+                <!-- 每週跑量圖表 -->
+                <div class="col-lg-6">
+                    <div class="r-card h-100">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="fw-bold mb-0">訓練量統計 (距離)</h5>
+                            <!-- 互動下拉選單：觸發圖表更新 -->
+                            <select id="chartTimeRange" class="form-select form-select-sm bg-dark text-white border-secondary w-auto shadow-sm" onchange="updateChartData()">
+                                <option value="7days">最近 7 天</option>
+                                <option value="4weeks">最近 4 週</option>
+                            </select>
+                        </div>
+                        <div style="height: 250px;">
+                            <canvas id="performanceChart"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="row g-4">
-            <div class="col-lg-6">
-                <div class="r-card h-100">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h5 class="fw-bold mb-0">即將到來的課表</h5>
-                        <span class="badge bg-dark border border-secondary text-light">第 4 週 / 共 16 週</span>
-                    </div>
-
-                    <div class="calendar-item">
-                        <div class="cal-date">
-                            <div class="cal-day">MON</div><div class="cal-num">14</div>
-                        </div>
-                        <div class="workout-tag tag-green"></div>
-                        <div class="flex-grow-1">
-                            <h6 class="fw-bold mb-1">輕鬆跑 (Easy Run)</h6>
-                            <div class="text-muted small">目標: 7.0 KM · 配速 6'15"</div>
-                        </div>
-                        <i class="fa-regular fa-circle-check fs-4 text-muted"></i>
-                    </div>
-
-                    <div class="calendar-item">
-                        <div class="cal-date">
-                            <div class="cal-day text-white">WED</div><div class="cal-num text-white">16</div>
-                        </div>
-                        <div class="workout-tag tag-purple"></div>
-                        <div class="flex-grow-1">
-                            <h6 class="fw-bold mb-1">間歇訓練 (Intervals)</h6>
-                            <div class="text-muted small">目標: 800m x 6 趟 · 恢復 90秒</div>
-                        </div>
-                        <button class="btn btn-sm btn-light fw-bold rounded-pill px-3">今日開始</button>
-                    </div>
-
-                    <div class="calendar-item">
-                        <div class="cal-date">
-                            <div class="cal-day">SUN</div><div class="cal-num">20</div>
-                        </div>
-                        <div class="workout-tag" style="background-color: #f39c12;"></div>
-                        <div class="flex-grow-1">
-                            <h6 class="fw-bold mb-1">長距離訓練 (LSD)</h6>
-                            <div class="text-muted small">目標: 21.0 KM · 保持心率區間 2</div>
-                        </div>
-                        <i class="fa-solid fa-lock fs-5 text-muted"></i>
-                    </div>
-                </div>
+        <!-- ========================================== -->
+        <!-- 頁籤 2：專屬課表 (假資料示意) -->
+        <!-- ========================================== -->
+        <div id="tab-schedule" class="tab-pane">
+            <div class="r-card text-center py-5 mt-5">
+                <i class="fa-solid fa-calendar-check fa-4x text-muted mb-4"></i>
+                <h3 class="fw-bold">全馬訓練計畫 (16週)</h3>
+                <p class="text-muted">這是您的專屬教練為您安排的進階課表。<br>更多詳細日曆功能正在開發中...</p>
+                <button class="btn btn-outline-secondary mt-3 rounded-pill" onclick="switchTab('tab-overview', document.querySelectorAll('.nav-item-r')[0])">返回總覽</button>
             </div>
+        </div>
 
-            <div class="col-lg-6">
-                <div class="r-card h-100">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h5 class="fw-bold mb-0">訓練量統計 (距離)</h5>
-                        <select class="form-select form-select-sm bg-dark text-white border-secondary w-auto">
-                            <option>最近 7 天</option>
-                            <option>最近 4 週</option>
-                        </select>
-                    </div>
-                    <div style="height: 250px;">
-                        <canvas id="performanceChart"></canvas>
-                    </div>
+        <!-- 其他頁籤略... 用以展示切換效果即可 -->
+        <div id="tab-records" class="tab-pane">
+            <h2 class="fw-bold mb-4">所有活動紀錄</h2>
+            <p class="text-muted">這裡將連接您的 Garmin Connect 歷史資料。</p>
+        </div>
+        
+        <div id="tab-achievements" class="tab-pane">
+            <h2 class="fw-bold mb-4">榮譽徽章</h2>
+            <div class="d-flex gap-3">
+                <div class="r-card text-center p-4" style="width: 150px;">
+                    <i class="fa-solid fa-medal fa-3x mb-2" style="color: #ffd700;"></i>
+                    <div class="fw-bold small">半馬破二</div>
+                </div>
+                <div class="r-card text-center p-4" style="width: 150px;">
+                    <i class="fa-solid fa-fire fa-3x mb-2" style="color: var(--r-orange);"></i>
+                    <div class="fw-bold small">連續運動7天</div>
                 </div>
             </div>
         </div>
 
     </main>
 
+
+    <!-- ========================================== -->
+    <!-- 互動模態框 (Modals) -->
+    <!-- ========================================== -->
+
+    <!-- 1. 開始訓練 Modal -->
+    <div class="modal fade" id="startWorkoutModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-content-dark shadow-lg">
+                <div class="modal-header border-bottom border-secondary">
+                    <h5 class="modal-title fw-bold">開始間歇訓練</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <div class="rounded-circle mx-auto mb-3" style="width: 80px; height: 80px; background-color: rgba(191, 90, 242, 0.2); display:flex; justify-content:center; align-items:center;">
+                        <i class="fa-solid fa-stopwatch fa-3x" style="color: var(--r-purple);"></i>
+                    </div>
+                    <h4 class="fw-bold mb-2">準備好衝刺了嗎？</h4>
+                    <p class="text-muted mb-4">目標：800m x 6 趟 (預估距離：4.8 KM)<br>記得連接您的 Garmin 手錶或 Apple Watch。</p>
+                </div>
+                <div class="modal-footer border-top border-secondary justify-content-center">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">稍後再說</button>
+                    <!-- 模擬完成訓練的按鈕 -->
+                    <button type="button" class="btn btn-r-primary px-5" onclick="finishWorkout()">同步並完成</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. 手動新增活動 Modal -->
+    <div class="modal fade" id="addRunModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-content-dark shadow-lg">
+                <div class="modal-header border-bottom border-secondary">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-plus text-success me-2"></i>手動新增跑步紀錄</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="manualRunForm">
+                        <div class="mb-3">
+                            <label class="form-label text-muted small fw-bold">活動標題</label>
+                            <input type="text" class="form-control form-control-dark" id="inputTitle" placeholder="例如：夜跑、輕鬆跑" value="河濱夜跑">
+                        </div>
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <label class="form-label text-muted small fw-bold">總距離 (KM)</label>
+                                <input type="number" step="0.01" class="form-control form-control-dark" id="inputDist" placeholder="0.00" required>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label class="form-label text-muted small fw-bold">總時間 (分鐘)</label>
+                                <input type="number" class="form-control form-control-dark" id="inputTime" placeholder="例如: 45" required>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-top border-secondary">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-r-primary px-4" onclick="saveManualRun()">儲存紀錄</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入 JS 套件 -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
         // ==========================================
-        // 1. 初始化 Leaflet 地圖 (模擬深色模式與 GPS 軌跡)
+        // 1. 側邊欄頁籤切換邏輯 (Tab Switching)
         // ==========================================
-        
-        // 假 GPS 座標 (模擬河濱公園路線)
+        function switchTab(tabId, element) {
+            // 處理側邊欄樣式 (Active 狀態)
+            document.querySelectorAll('.nav-item-r').forEach(nav => nav.classList.remove('active'));
+            if(element) element.classList.add('active');
+
+            // 處理內容切換
+            document.querySelectorAll('.tab-pane').forEach(tab => tab.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+
+            // 解決 Leaflet 地圖在隱藏 div 中大小計算錯誤的問題
+            if(tabId === 'tab-overview') {
+                setTimeout(() => { map.invalidateSize(); }, 100);
+            }
+            
+            // 手機版：點擊後自動收起側邊欄
+            if(window.innerWidth <= 768) { toggleSidebar(); }
+        }
+
+        // 手機版漢堡選單控制
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('show');
+        }
+
+
+        // ==========================================
+        // 2. Leaflet 地圖初始化
+        // ==========================================
         const mockRoute = [
             [25.060, 121.515], [25.062, 121.512], [25.065, 121.510], 
             [25.068, 121.505], [25.070, 121.498], [25.072, 121.490],
             [25.070, 121.485], [25.065, 121.488]
         ];
 
-        // 建立地圖，禁用拖曳與縮放讓它看起來像個靜態小工具
         const map = L.map('runMap', {
-            zoomControl: false,
-            dragging: false,
-            scrollWheelZoom: false,
-            doubleClickZoom: false
+            zoomControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false
         }).setView([25.066, 121.502], 14);
 
-        // 使用 CartoDB 的深色底圖 (完美契合暗黑主題)
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
+            attribution: '&copy; OpenStreetMap'
         }).addTo(map);
 
-        // 畫出跑步軌跡線 (霓虹綠色)
         const polyline = L.polyline(mockRoute, {
-            color: '#2ecc71', 
-            weight: 5,
-            opacity: 0.9,
-            lineJoin: 'round'
+            color: '#32d74b', weight: 5, opacity: 0.9, lineJoin: 'round'
         }).addTo(map);
-        
-        // 將視角自動調整到軌跡範圍
         map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
 
 
         // ==========================================
-        // 2. 初始化 Chart.js 每週跑量長條圖
+        // 3. Chart.js 初始化與下拉切換邏輯
         // ==========================================
         const ctx = document.getElementById('performanceChart').getContext('2d');
         
-        new Chart(ctx, {
+        // 準備兩組假資料
+        const data7Days = {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            data: [7.0, 0, 0, 0, 5.0, 0, 17.7] // 週三預設為 0，等完成課表會加上去
+        };
+        const data4Weeks = {
+            labels: ['Week 1', 'Week 2', 'Week 3', 'This Week'],
+            data: [35.2, 42.0, 28.5, 29.7]
+        };
+
+        // 建立全域圖表變數
+        let performanceChart = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                labels: data7Days.labels,
                 datasets: [{
                     label: '距離 (KM)',
-                    data: [7.0, 0, 8.5, 0, 5.0, 0, 17.7],
-                    backgroundColor: '#9b59b6', // R 的主題紫
+                    data: data7Days.data,
+                    backgroundColor: '#bf5af2', // 紫色
                     borderRadius: 6,
                     barPercentage: 0.5
                 }]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        backgroundColor: 'rgba(0,0,0,0.8)',
-                        titleFont: { size: 13 },
-                        bodyFont: { size: 14, weight: 'bold' },
-                        displayColors: false
-                    }
-                },
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
                 scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                        ticks: { color: '#8e8e93' }
-                    },
-                    x: {
-                        grid: { display: false },
-                        ticks: { color: '#8e8e93' }
-                    }
+                    y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#8e8e93' } },
+                    x: { grid: { display: false }, ticks: { color: '#8e8e93' } }
                 }
             }
         });
+
+        // 監聽下拉選單變化
+        function updateChartData() {
+            const range = document.getElementById('chartTimeRange').value;
+            if(range === '7days') {
+                performanceChart.data.labels = data7Days.labels;
+                performanceChart.data.datasets[0].data = data7Days.data;
+            } else {
+                performanceChart.data.labels = data4Weeks.labels;
+                performanceChart.data.datasets[0].data = data4Weeks.data;
+            }
+            performanceChart.update();
+        }
+
+
+        // ==========================================
+        // 4. 「完成課表」互動邏輯 (Gamification)
+        // ==========================================
+        function finishWorkout() {
+            // 1. 關閉 Modal
+            const modalEl = document.getElementById('startWorkoutModal');
+            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+            modalInstance.hide();
+
+            // 2. 改變按鈕 UI 為「打勾」並加入動畫
+            const actionBtn = document.getElementById('workout-action-btn');
+            actionBtn.innerHTML = '<i class="fa-solid fa-circle-check fs-2 animate__animated animate__bounceIn" style="color: var(--r-purple);"></i>';
+
+            // 3. 動態更新圖表 (將週三的訓練量 4.8KM 加進圖表)
+            if(document.getElementById('chartTimeRange').value === '7days') {
+                data7Days.data[2] = 4.8; // 更新原始資料陣列
+                performanceChart.data.datasets[0].data = data7Days.data;
+                performanceChart.update(); // 觸發重繪動畫
+            }
+        }
+
+
+        // ==========================================
+        // 5. 「手動新增紀錄」互動邏輯 (Data Binding)
+        // ==========================================
+        function saveManualRun() {
+            const title = document.getElementById('inputTitle').value;
+            const dist = parseFloat(document.getElementById('inputDist').value);
+            const timeMins = parseInt(document.getElementById('inputTime').value);
+
+            if(!dist || !timeMins) { alert("請填寫距離與時間！"); return; }
+
+            // 關閉 Modal
+            const modalEl = document.getElementById('addRunModal');
+            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+            modalInstance.hide();
+
+            // 簡單計算配速 (分鐘/公里)
+            const paceDecimal = timeMins / dist;
+            const paceMins = Math.floor(paceDecimal);
+            const paceSecs = Math.round((paceDecimal - paceMins) * 60);
+            const formattedPace = `${paceMins}'${paceSecs.toString().padStart(2, '0')}"`;
+
+            // 格式化時間 (HH:MM:SS)
+            const h = Math.floor(timeMins / 60);
+            const m = timeMins % 60;
+            const formattedTime = h > 0 ? `${h}:${m.toString().padStart(2, '0')}:00` : `${m.toString().padStart(2, '0')}:00`;
+
+            // 動態更新主畫面 HTML 數據 (加上淡入動畫提示更新)
+            document.getElementById('dash-run-title').innerHTML = `${title} <span class="badge bg-success ms-2 animate__animated animate__fadeIn">New</span>`;
+            document.getElementById('dash-run-time').innerText = '剛剛';
+            
+            const distEl = document.getElementById('dash-val-dist');
+            distEl.innerText = dist.toFixed(2);
+            distEl.classList.add('animate__animated', 'animate__flash');
+            
+            document.getElementById('dash-val-time').innerText = formattedTime;
+            document.getElementById('dash-val-pace').innerText = formattedPace;
+            
+            // 將新數據加入圖表 (假設今天是禮拜四)
+            if(document.getElementById('chartTimeRange').value === '7days') {
+                data7Days.data[3] += dist; // 累加到禮拜四
+                performanceChart.update();
+            }
+            
+            // 清空表單
+            document.getElementById('manualRunForm').reset();
+            
+            // 移除動畫 class 以便下次觸發
+            setTimeout(() => { distEl.classList.remove('animate__animated', 'animate__flash'); }, 1000);
+        }
     </script>
 </body>
 </html>
