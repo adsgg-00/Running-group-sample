@@ -5,21 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>R - 個人訓練儀表板</title>
     
-    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <!-- Leaflet CSS (地圖) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <!-- Animate CSS (動畫) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 
     <style>
         :root {
             --bg-dark: #0a0a0c;
-            --card-dark: #1c1c1e; /* 稍微調亮一點的深灰，符合 Apple 質感 */
-            --r-green: #32d74b;  /* Apple Fitness 綠 */
-            --r-purple: #bf5af2; /* Apple Fitness 紫 */
+            --card-dark: #1c1c1e;
+            --r-green: #32d74b;  
+            --r-purple: #bf5af2; 
             --r-orange: #ff9f0a;
             --text-main: #ffffff;
             --text-muted: #8e8e93;
@@ -54,35 +50,17 @@
             font-weight: 600;
             cursor: pointer;
         }
-        .nav-item-r:hover {
-            background-color: rgba(255, 255, 255, 0.05);
-            color: var(--text-main);
-        }
-        .nav-item-r.active {
-            background-color: rgba(255, 255, 255, 0.1);
-            color: var(--text-main);
-        }
+        .nav-item-r:hover { background-color: rgba(255, 255, 255, 0.05); color: var(--text-main); }
+        .nav-item-r.active { background-color: rgba(255, 255, 255, 0.1); color: var(--text-main); }
         .nav-item-r i { width: 30px; font-size: 1.1rem; text-align: center; margin-right: 8px; }
 
         /* 主內容區 */
-        .main-content {
-            margin-left: 250px;
-            padding: 40px 5%;
-        }
+        .main-content { margin-left: 250px; padding: 40px 5%; }
 
         /* 頁籤內容控制 */
-        .tab-pane {
-            display: none;
-            animation: fadeIn 0.4s ease forwards;
-        }
-        .tab-pane.active {
-            display: block;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        .tab-pane { display: none; animation: fadeIn 0.4s ease forwards; }
+        .tab-pane.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         /* 玻璃質感卡片 */
         .r-card {
@@ -95,142 +73,66 @@
         }
 
         /* 地圖軌跡區塊 */
-        .map-container {
-            position: relative;
-            height: 350px;
-            border-radius: 16px;
-            overflow: hidden;
-            margin-bottom: 10px;
-        }
+        .map-container { position: relative; height: 350px; border-radius: 16px; overflow: hidden; margin-bottom: 10px; }
         #runMap { height: 100%; width: 100%; z-index: 1; }
         
         .map-overlay-stats {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
-            z-index: 2;
-            background: rgba(28, 28, 30, 0.75);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border-radius: 20px;
-            padding: 20px;
-            border: 1px solid rgba(255,255,255,0.1);
-            display: flex;
-            justify-content: space-between;
+            position: absolute; bottom: 20px; left: 20px; right: 20px; z-index: 2;
+            background: rgba(28, 28, 30, 0.75); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            border-radius: 20px; padding: 20px; border: 1px solid rgba(255,255,255,0.1);
+            display: flex; justify-content: space-between;
         }
         .stat-box { text-align: center; }
         .stat-label { font-size: 0.75rem; color: var(--text-main); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
         .stat-value { font-size: 1.6rem; font-weight: 800; font-variant-numeric: tabular-nums; }
         .text-green { color: var(--r-green); }
 
-        /* 覆蓋 Leaflet 預設樣式 */
-        .leaflet-control-attribution, .leaflet-control-attribution a {
-            color: var(--text-muted) !important;
-            font-size: 0.7rem !important;
-        }
-        .leaflet-control-attribution a:hover {
-            color: var(--text-main) !important;
-        }
+        .leaflet-control-attribution, .leaflet-control-attribution a { color: var(--text-muted) !important; font-size: 0.7rem !important; }
+        .leaflet-control-attribution a:hover { color: var(--text-main) !important; }
 
         /* 訓練日曆列表 */
-        .calendar-item {
-            display: flex;
-            align-items: center;
-            padding: 15px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
+        .calendar-item { display: flex; align-items: center; padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .calendar-item:last-child { border-bottom: none; }
         .cal-date { width: 50px; text-align: center; margin-right: 15px; }
         .cal-day { font-size: 0.8rem; color: var(--text-muted); font-weight: bold; }
         .cal-num { font-size: 1.4rem; font-weight: 800; }
-        
         .workout-tag { width: 4px; height: 40px; border-radius: 4px; margin-right: 15px; }
         .tag-purple { background-color: var(--r-purple); }
         .tag-green { background-color: var(--r-green); }
 
         /* 黑暗模式 Modal 彈出視窗 */
-        .modal-content-dark {
-            background-color: var(--card-dark);
-            color: var(--text-main);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 24px;
-        }
-        .form-control-dark {
-            background-color: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            color: white;
-            border-radius: 12px;
-        }
-        .form-control-dark:focus {
-            background-color: rgba(255,255,255,0.1);
-            color: white;
-            border-color: var(--r-green);
-            box-shadow: none;
-        }
-        /* 讓下拉選單在深色模式下更好看 */
-        .form-select.form-control-dark option {
-            background: var(--card-dark);
-            color: var(--text-main);
-        }
+        .modal-content-dark { background-color: var(--card-dark); color: var(--text-main); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; }
+        .form-control-dark { background-color: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 12px; }
+        .form-control-dark:focus { background-color: rgba(255,255,255,0.1); color: white; border-color: var(--r-green); box-shadow: none; }
+        .form-select.form-control-dark option { background: var(--card-dark); color: var(--text-main); }
 
         /* 按鈕樣式 */
-        .btn-r-primary {
-            background-color: var(--text-main);
-            color: var(--bg-dark);
-            font-weight: 700;
-            border-radius: 20px;
-            transition: 0.2s;
-        }
+        .btn-r-primary { background-color: var(--text-main); color: var(--bg-dark); font-weight: 700; border-radius: 20px; transition: 0.2s; }
         .btn-r-primary:hover { background-color: #e0e0e0; transform: scale(1.02); }
 
         /* AI 課表生成器 */
         .day-checkbox { display: none; }
         .day-label {
-            padding: 10px 18px;
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-weight: 600;
-            background-color: rgba(255,255,255,0.05);
+            padding: 10px 18px; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
+            cursor: pointer; transition: all 0.2s ease; font-weight: 600; background-color: rgba(255,255,255,0.05);
         }
         .day-label:hover { background-color: rgba(255,255,255,0.1); }
-        .day-checkbox:checked + .day-label {
-            background-color: var(--r-purple);
-            color: white;
-            border-color: var(--r-purple);
-        }
+        .day-checkbox:checked + .day-label { background-color: var(--r-purple); color: white; border-color: var(--r-purple); }
 
         /* 課表視覺化 */
-        .week-card {
-            background-color: var(--card-dark);
-            border-radius: 20px;
-            padding: 20px;
-            border: 1px solid rgba(255,255,255,0.05);
-        }
-        .week-header {
-            font-size: 1.2rem;
-            font-weight: 700;
-            margin-bottom: 15px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-        .daily-workout {
-            display: grid;
-            grid-template-columns: 50px 1fr;
-            gap: 15px;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
+        .week-card { background-color: var(--card-dark); border-radius: 20px; padding: 20px; border: 1px solid rgba(255,255,255,0.05); }
+        .week-header { font-size: 1.2rem; font-weight: 700; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .daily-workout { display: grid; grid-template-columns: 50px 1fr; gap: 15px; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .daily-workout:last-child { border-bottom: none; }
         .day-name { font-size: 0.8rem; color: var(--text-muted); font-weight: bold; }
         .workout-type { font-weight: 600; }
         .workout-details { font-size: 0.9rem; color: var(--text-muted); }
-        .workout-icon {
-            width: 36px; height: 36px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center; font-size: 1rem;
+        .workout-icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+
+        /* AI 載入遮罩 */
+        .loading-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(10, 10, 12, 0.95);
+            z-index: 9999; align-items: center; justify-content: center; flex-direction: column;
         }
 
         @media (max-width: 768px) {
@@ -241,40 +143,29 @@
             .mobile-header { display: flex !important; }
         }
         
-        /* 使用者自訂：縮小主內容區字體，但排除 h2 標題 */
-        .main-content {
-            font-size: 90%;
-        }
-        .main-content h2 {
-            /* Bootstrap h2 is 2rem. 2rem / 0.9 ≈ 2.222rem */
-            font-size: 2.22rem; 
-        }
+        .main-content { font-size: 90%; }
+        .main-content h2 { font-size: 2.22rem; }
 
-        /* 手機版頂部導覽列 (僅在小螢幕顯示) */
         .mobile-header {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0;
-            height: 60px;
-            background: rgba(10, 10, 12, 0.8);
-            backdrop-filter: blur(10px);
-            z-index: 99;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 20px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: none; position: fixed; top: 0; left: 0; right: 0; height: 60px;
+            background: rgba(10, 10, 12, 0.8); backdrop-filter: blur(10px); z-index: 99;
+            align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 1px solid rgba(255,255,255,0.1);
         }
     </style>
 </head>
 <body>
 
-    <!-- 手機版頂部導覽列 -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="spinner-border text-light mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+        <h4 class="fw-bold animate__animated animate__pulse animate__infinite" style="color: var(--r-purple);">Gemini AI 正在為您客製化計畫...</h4>
+        <p class="text-muted small">連線至 Google 伺服器分析中，請稍候片刻</p>
+    </div>
+
     <div class="mobile-header">
         <span style="font-size: 1.5rem; font-weight: 900; font-style: italic;">R</span>
         <button class="btn btn-link text-white" onclick="toggleSidebar()"><i class="fa-solid fa-bars fs-4"></i></button>
     </div>
 
-    <!-- 側邊導覽列 -->
     <nav class="sidebar" id="sidebar">
         <a href="index.html" class="text-white text-decoration-none d-flex align-items-center mb-5 mt-2 px-3">
             <span style="font-size: 2rem; font-weight: 900; font-style: italic;">R</span>
@@ -282,7 +173,6 @@
         </a>
 
         <div class="mb-5 px-3 d-flex align-items-center gap-3">
-            <!-- 替換成真實的圖片路徑 -->
             <div class="rounded-circle bg-secondary" style="width: 45px; height: 45px; background: url('image/Eliud Kipchoge.jpg') center/cover;"></div>
             <div>
                 <div class="fw-bold fs-6">商逢育</div>
@@ -311,25 +201,19 @@
         </div>
     </nav>
 
-    <!-- 主內容區 -->
     <main class="main-content">
         
-        <!-- ========================================== -->
-        <!-- 頁籤 1：訓練總覽 (預設顯示) -->
-        <!-- ========================================== -->
         <div id="tab-overview" class="tab-pane active">
             <div class="d-flex justify-content-between align-items-end mb-4">
                 <div>
                     <h2 class="fw-bold mb-1">早安，準備好今天的挑戰了嗎？</h2>
                     <p>這是你本週的訓練摘要與最新活動紀錄。</p>
                 </div>
-                <!-- 觸發手動新增 Modal -->
                 <button class="btn btn-outline-light rounded-pill px-4 fw-bold d-none d-md-block" data-bs-toggle="modal" data-bs-target="#addRunModal">
                     <i class="fa-solid fa-plus me-2"></i>手動新增
                 </button>
             </div>
 
-            <!-- 最新一筆跑步紀錄 -->
             <div class="r-card p-2 p-md-3">
                 <div class="d-flex align-items-center px-3 pt-2 mb-3">
                     <div class="rounded bg-purple me-3 shadow-sm" style="width:36px; height:36px; background-color: var(--r-purple); display:flex; justify-content:center; align-items:center;">
@@ -343,7 +227,6 @@
 
                 <div class="map-container">
                     <div id="runMap"></div>
-                    <!-- 浮動數據面板 -->
                     <div class="map-overlay-stats shadow-lg">
                         <div class="stat-box">
                             <div class="stat-label">距離</div>
@@ -366,7 +249,6 @@
             </div>
 
             <div class="row g-4">
-                <!-- 訓練日曆 -->
                 <div class="col-lg-6">
                     <div class="r-card h-100">
                         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -374,11 +256,8 @@
                             <span class="badge bg-dark border border-secondary text-light">第 4 週 / 共 16 週</span>
                         </div>
 
-                        <!-- 過去的課表 (已完成) -->
                         <div class="calendar-item" style="opacity: 0.6;">
-                            <div class="cal-date">
-                                <div class="cal-day">MON</div><div class="cal-num">14</div>
-                            </div>
+                            <div class="cal-date"><div class="cal-day">MON</div><div class="cal-num">14</div></div>
                             <div class="workout-tag tag-green"></div>
                             <div class="flex-grow-1">
                                 <h6 class="fw-bold mb-1">輕鬆跑 (Easy Run)</h6>
@@ -387,27 +266,20 @@
                             <i class="fa-solid fa-circle-check fs-4" style="color: var(--r-green);"></i>
                         </div>
 
-                        <!-- 今天的課表 (可點擊互動) -->
                         <div class="calendar-item">
-                            <div class="cal-date">
-                                <div class="cal-day text-white">WED</div><div class="cal-num text-white">16</div>
-                            </div>
+                            <div class="cal-date"><div class="cal-day text-white">WED</div><div class="cal-num text-white">16</div></div>
                             <div class="workout-tag tag-purple"></div>
                             <div class="flex-grow-1">
                                 <h6 class="fw-bold mb-1">間歇訓練 (Intervals)</h6>
                                 <div class="text-muted small">目標: 800m x 6 趟 · 恢復 90秒</div>
                             </div>
-                            <!-- 互動按鈕：觸發 Modal -->
                             <div id="workout-action-btn">
                                 <button class="btn btn-sm btn-r-primary px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#startWorkoutModal">今日開始</button>
                             </div>
                         </div>
 
-                        <!-- 未來的課表 (鎖定) -->
                         <div class="calendar-item">
-                            <div class="cal-date">
-                                <div class="cal-day">SUN</div><div class="cal-num">20</div>
-                            </div>
+                            <div class="cal-date"><div class="cal-day">SUN</div><div class="cal-num">20</div></div>
                             <div class="workout-tag" style="background-color: var(--r-orange);"></div>
                             <div class="flex-grow-1">
                                 <h6 class="fw-bold mb-1">長距離訓練 (LSD)</h6>
@@ -418,12 +290,10 @@
                     </div>
                 </div>
 
-                <!-- 每週跑量圖表 -->
                 <div class="col-lg-6">
                     <div class="r-card h-100">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h5 class="fw-bold mb-0">訓練量統計 (距離)</h5>
-                            <!-- 互動下拉選單：觸發圖表更新 -->
                             <select id="chartTimeRange" class="form-select form-select-sm bg-dark text-white border-secondary w-auto shadow-sm" onchange="updateChartData()">
                                 <option value="7days">最近 7 天</option>
                                 <option value="4weeks">最近 4 週</option>
@@ -437,17 +307,13 @@
             </div>
         </div>
 
-        <!-- ========================================== -->
-        <!-- 頁籤 2：專屬課表 (假資料示意) -->
-        <!-- ========================================== -->
         <div id="tab-schedule" class="tab-pane">
-            <!-- UI for generating the plan -->
             <div id="plan-generator-ui">
                 <div class="r-card p-4 p-md-5">
                     <div class="text-center mb-5">
                         <i class="fa-solid fa-brain fa-3x mb-3" style="color: var(--r-purple);"></i>
                         <h2 class="fw-bold">打造您的專屬訓練計畫</h2>
-                        <p class="text-muted">告訴 AI 您的目標，讓我們為您生成一份個人化訓練課表。</p>
+                        <p class="text-muted">告訴 AI 您的目標，我們將透過 Gemini 生成一份最適合您的訓練課表。</p>
                     </div>
 
                     <form id="plan-request-form">
@@ -471,21 +337,19 @@
                             <div class="col-12">
                                 <label class="form-label fw-bold">3. 您一週通常可以訓練哪幾天？</label>
                                 <div class="d-flex flex-wrap gap-2" id="training-days">
-                                    <!-- Day checkboxes will be generated by JS -->
-                                </div>
+                                    </div>
                             </div>
                         </div>
 
                         <div class="text-center mt-5">
                             <button type="button" class="btn btn-r-primary btn-lg px-5 shadow" onclick="generatePlan()">
-                                <i class="fa-solid fa-wand-magic-sparkles me-2"></i>開始生成計畫
+                                <i class="fa-solid fa-wand-magic-sparkles me-2"></i>連線 Gemini 生成計畫
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
 
-            <!-- UI for displaying the generated plan -->
             <div id="plan-display-ui" style="display: none;">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
@@ -497,12 +361,10 @@
                     </button>
                 </div>
                 <div id="plan-visualization" class="d-flex flex-column gap-5">
-                    <!-- Generated weeks will be injected here by JS -->
-                </div>
+                    </div>
             </div>
         </div>
 
-        <!-- 其他頁籤略... 用以展示切換效果即可 -->
         <div id="tab-records" class="tab-pane">
             <h2 class="fw-bold mb-4">所有活動紀錄</h2>
             <p class="text-muted">這裡將連接您的 Garmin Connect 歷史資料。</p>
@@ -524,12 +386,6 @@
 
     </main>
 
-
-    <!-- ========================================== -->
-    <!-- 互動模態框 (Modals) -->
-    <!-- ========================================== -->
-
-    <!-- 1. 開始訓練 Modal -->
     <div class="modal fade" id="startWorkoutModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content modal-content-dark shadow-lg">
@@ -546,14 +402,12 @@
                 </div>
                 <div class="modal-footer border-top border-secondary justify-content-center">
                     <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">稍後再說</button>
-                    <!-- 模擬完成訓練的按鈕 -->
                     <button type="button" class="btn btn-r-primary px-5" onclick="finishWorkout()">同步並完成</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 2. 手動新增活動 Modal -->
     <div class="modal fade" id="addRunModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content modal-content-dark shadow-lg">
@@ -587,262 +441,184 @@
         </div>
     </div>
 
-    <!-- 引入 JS 套件 -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
         // ==========================================
-        // 1. 側邊欄頁籤切換邏輯 (Tab Switching)
+        // 1. 側邊欄頁籤切換與 UI 控制邏輯
         // ==========================================
         function switchTab(tabId, element) {
-            // 處理側邊欄樣式 (Active 狀態)
             document.querySelectorAll('.nav-item-r').forEach(nav => nav.classList.remove('active'));
             if(element) element.classList.add('active');
 
-            // 處理內容切換
             document.querySelectorAll('.tab-pane').forEach(tab => tab.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
 
-            // 解決 Leaflet 地圖在隱藏 div 中大小計算錯誤的問題
-            if(tabId === 'tab-overview') {
-                setTimeout(() => { map.invalidateSize(); }, 100);
-            }
-            
-            // 手機版：點擊後自動收起側邊欄
-            if(window.innerWidth <= 768) { toggleSidebar(); }
+            if(tabId === 'tab-overview') setTimeout(() => { map.invalidateSize(); }, 100);
+            if(window.innerWidth <= 768) toggleSidebar();
         }
-
-        // 手機版漢堡選單控制
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('show');
-        }
-
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('show'); }
 
         // ==========================================
-        // 2. Leaflet 地圖初始化
+        // 2. 地圖與圖表初始化
         // ==========================================
-        const mockRoute = [
-            [25.060, 121.515], [25.062, 121.512], [25.065, 121.510], 
-            [25.068, 121.505], [25.070, 121.498], [25.072, 121.490],
-            [25.070, 121.485], [25.065, 121.488]
-        ];
-
-        // 更改地圖設定為可互動
-        const map = L.map('runMap', {
-            zoomControl: false, dragging: true, scrollWheelZoom: true
-        }).setView([25.066, 121.502], 14);
-
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; OpenStreetMap'
-        }).addTo(map);
-
-        const polyline = L.polyline(mockRoute, {
-            color: '#32d74b', weight: 5, opacity: 0.9, lineJoin: 'round'
-        }).addTo(map);
-        const bounds = polyline.getBounds().pad(0.2); // 緩衝 20%
+        const mockRoute = [[25.060, 121.515], [25.062, 121.512], [25.065, 121.510], [25.068, 121.505], [25.070, 121.498], [25.072, 121.490]];
+        const map = L.map('runMap', { zoomControl: false, dragging: true, scrollWheelZoom: true }).setView([25.066, 121.502], 14);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
+        const polyline = L.polyline(mockRoute, { color: '#32d74b', weight: 5, opacity: 0.9, lineJoin: 'round' }).addTo(map);
         map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
-        map.setMaxBounds(bounds);
-        map.setMinZoom(map.getZoom()); // 限制最小縮放層級，避免縮太小
 
-
-        // ==========================================
-        // 3. Chart.js 初始化與下拉切換邏輯
-        // ==========================================
         const ctx = document.getElementById('performanceChart').getContext('2d');
-        
-        // 準備兩組假資料
-        const data7Days = {
-            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-            data: [7.0, 0, 0, 0, 5.0, 0, 17.7] // 週三預設為 0，等完成課表會加上去
-        };
-        const data4Weeks = {
-            labels: ['Week 1', 'Week 2', 'Week 3', 'This Week'],
-            data: [35.2, 42.0, 28.5, 29.7]
-        };
-
-        // 建立全域圖表變數
+        const data7Days = { labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], data: [7.0, 0, 0, 0, 5.0, 0, 17.7] };
+        const data4Weeks = { labels: ['Week 1', 'Week 2', 'Week 3', 'This Week'], data: [35.2, 42.0, 28.5, 29.7] };
         let performanceChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: data7Days.labels,
-                datasets: [{
-                    label: '距離 (KM)',
-                    data: data7Days.data,
-                    backgroundColor: '#bf5af2', // 紫色
-                    borderRadius: 6,
-                    barPercentage: 0.5
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#8e8e93' } },
-                    x: { grid: { display: false }, ticks: { color: '#8e8e93' } }
-                }
-            }
+            type: 'bar', data: { labels: data7Days.labels, datasets: [{ label: '距離 (KM)', data: data7Days.data, backgroundColor: '#bf5af2', borderRadius: 6, barPercentage: 0.5 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#8e8e93' } }, x: { grid: { display: false }, ticks: { color: '#8e8e93' } } } }
         });
-
-        // 監聽下拉選單變化
         function updateChartData() {
             const range = document.getElementById('chartTimeRange').value;
-            if(range === '7days') {
-                performanceChart.data.labels = data7Days.labels;
-                performanceChart.data.datasets[0].data = data7Days.data;
-            } else {
-                performanceChart.data.labels = data4Weeks.labels;
-                performanceChart.data.datasets[0].data = data4Weeks.data;
-            }
+            performanceChart.data.labels = range === '7days' ? data7Days.labels : data4Weeks.labels;
+            performanceChart.data.datasets[0].data = range === '7days' ? data7Days.data : data4Weeks.data;
             performanceChart.update();
         }
 
-
         // ==========================================
-        // 4. 「完成課表」互動邏輯 (Gamification)
+        // 3. 按鈕互動功能
         // ==========================================
         function finishWorkout() {
-            // 1. 關閉 Modal
-            const modalEl = document.getElementById('startWorkoutModal');
-            const modalInstance = bootstrap.Modal.getInstance(modalEl);
-            modalInstance.hide();
-
-            // 2. 改變按鈕 UI 為「打勾」並加入動畫
-            const actionBtn = document.getElementById('workout-action-btn');
-            actionBtn.innerHTML = '<i class="fa-solid fa-circle-check fs-2 animate__animated animate__bounceIn" style="color: var(--r-purple);"></i>';
-
-            // 3. 動態更新圖表 (將週三的訓練量 4.8KM 加進圖表)
-            if(document.getElementById('chartTimeRange').value === '7days') {
-                data7Days.data[2] = 4.8; // 更新原始資料陣列
-                performanceChart.data.datasets[0].data = data7Days.data;
-                performanceChart.update(); // 觸發重繪動畫
-            }
+            bootstrap.Modal.getInstance(document.getElementById('startWorkoutModal')).hide();
+            document.getElementById('workout-action-btn').innerHTML = '<i class="fa-solid fa-circle-check fs-2 animate__animated animate__bounceIn" style="color: var(--r-purple);"></i>';
+            if(document.getElementById('chartTimeRange').value === '7days') { data7Days.data[2] = 4.8; performanceChart.update(); }
         }
 
-
-        // ==========================================
-        // 5. 「手動新增紀錄」互動邏輯 (Data Binding)
-        // ==========================================
         function saveManualRun() {
-            const title = document.getElementById('inputTitle').value;
-            const dist = parseFloat(document.getElementById('inputDist').value);
-            const timeMins = parseInt(document.getElementById('inputTime').value);
-
+            const title = document.getElementById('inputTitle').value, dist = parseFloat(document.getElementById('inputDist').value), timeMins = parseInt(document.getElementById('inputTime').value);
             if(!dist || !timeMins) { alert("請填寫距離與時間！"); return; }
-
-            // 關閉 Modal
-            const modalEl = document.getElementById('addRunModal');
-            const modalInstance = bootstrap.Modal.getInstance(modalEl);
-            modalInstance.hide();
-
-            // 簡單計算配速 (分鐘/公里)
-            const paceDecimal = timeMins / dist;
-            const paceMins = Math.floor(paceDecimal);
-            const paceSecs = Math.round((paceDecimal - paceMins) * 60);
-            const formattedPace = `${paceMins}'${paceSecs.toString().padStart(2, '0')}"`;
-
-            // 格式化時間 (HH:MM:SS)
-            const h = Math.floor(timeMins / 60);
-            const m = timeMins % 60;
-            const formattedTime = h > 0 ? `${h}:${m.toString().padStart(2, '0')}:00` : `${m.toString().padStart(2, '0')}:00`;
-
-            // 動態更新主畫面 HTML 數據 (加上淡入動畫提示更新)
+            bootstrap.Modal.getInstance(document.getElementById('addRunModal')).hide();
+            const paceMins = Math.floor(timeMins / dist), paceSecs = Math.round((timeMins / dist - paceMins) * 60);
+            const h = Math.floor(timeMins / 60), m = timeMins % 60;
             document.getElementById('dash-run-title').innerHTML = `${title} <span class="badge bg-success ms-2 animate__animated animate__fadeIn">New</span>`;
             document.getElementById('dash-run-time').innerText = '剛剛';
-            
-            const distEl = document.getElementById('dash-val-dist');
-            distEl.innerText = dist.toFixed(2);
-            distEl.classList.add('animate__animated', 'animate__flash');
-            
-            document.getElementById('dash-val-time').innerText = formattedTime;
-            document.getElementById('dash-val-pace').innerText = formattedPace;
-            
-            // 將新數據加入圖表 (假設今天是禮拜四)
-            if(document.getElementById('chartTimeRange').value === '7days') {
-                data7Days.data[3] += dist; // 累加到禮拜四
-                performanceChart.update();
-            }
-            
-            // 清空表單
+            document.getElementById('dash-val-dist').innerText = dist.toFixed(2);
+            document.getElementById('dash-val-time').innerText = h > 0 ? `${h}:${m.toString().padStart(2, '0')}:00` : `${m.toString().padStart(2, '0')}:00`;
+            document.getElementById('dash-val-pace').innerText = `${paceMins}'${paceSecs.toString().padStart(2, '0')}"`;
+            if(document.getElementById('chartTimeRange').value === '7days') { data7Days.data[3] += dist; performanceChart.update(); }
             document.getElementById('manualRunForm').reset();
-            
-            // 移除動畫 class 以便下次觸發
-            setTimeout(() => { distEl.classList.remove('animate__animated', 'animate__flash'); }, 1000);
         }
 
-
         // ==========================================
-        // 6. AI 課表生成器 (AI Plan Generator)
+        // 4. Gemini AI 完美連線整合 (取代 mock 假資料)
         // ==========================================
-
         const daysOfWeek = [
-            { id: 'sun', name: '週日' }, { id: 'mon', name: '週一' }, { id: 'tue', name: '週二' },
-            { id: 'wed', name: '週三' }, { id: 'thu', name: '週四' }, { id: 'fri', name: '週五' },
-            { id: 'sat', name: '週六' }
+            { id: 'mon', name: '週一' }, { id: 'tue', name: '週二' }, { id: 'wed', name: '週三' },
+            { id: 'thu', name: '週四' }, { id: 'fri', name: '週五' }, { id: 'sat', name: '週六' }, { id: 'sun', name: '週日' }
         ];
 
-        // Initialize the day selector checkboxes
         function initPlanGenerator() {
             const container = document.getElementById('training-days');
             daysOfWeek.forEach(day => {
-                container.innerHTML += `
-                    <div>
-                        <input type="checkbox" class="day-checkbox" id="day-${day.id}" value="${day.id}">
-                        <label class="day-label" for="day-${day.id}">${day.name}</label>
-                    </div>
-                `;
+                container.innerHTML += `<div><input type="checkbox" class="day-checkbox" id="day-${day.id}" value="${day.id}"><label class="day-label" for="day-${day.id}">${day.name}</label></div>`;
             });
-            // Pre-select some days as default
-            ['tue', 'thu', 'sat', 'sun'].forEach(dayId => {
-                document.getElementById(`day-${dayId}`).checked = true;
-            });
+            ['tue', 'thu', 'sat', 'sun'].forEach(dayId => { document.getElementById(`day-${dayId}`).checked = true; });
+        }
+        initPlanGenerator();
+
+        function resetGenerator() {
+            document.getElementById('plan-display-ui').style.display = 'none';
+            document.getElementById('plan-generator-ui').style.display = 'block';
         }
 
-        function generatePlan() {
-            const goalRaceEl = document.getElementById('goal-race');
+        // 這是與 Google Gemini 連線的核心非同步函式 (使用 fetch，保證不報錯)
+        async function generatePlan() {
+            const apiKey = 'AQ.Ab8RN6IeKSSmV6ktx9RyaYk2N6KVdPWNgVPS3BuaFl4kjYuRyQ'; // 你提供的 API Key
+            const goalRaceInput = document.getElementById('goal-race');
+            const goalRace = goalRaceInput.options[goalRaceInput.selectedIndex].text;
             const goalTimeInput = document.getElementById('goal-time');
             const goalTime = goalTimeInput.value;
-            const selectedDays = Array.from(document.querySelectorAll('#training-days input:checked')).map(el => el.value);
+            const checkedBoxes = Array.from(document.querySelectorAll('#training-days input:checked'));
+            const selectedDays = checkedBoxes.map(el => daysOfWeek.find(d => d.id === el.value).name);
 
-            if (!goalTime.trim()) {
-                alert('請輸入您的目標完賽時間！');
-                goalTimeInput.focus();
-                return;
+            if (!goalTime.trim()) { alert('請輸入您的目標完賽時間！'); goalTimeInput.focus(); return; }
+            if (selectedDays.length < 3) { alert('請至少選擇 3 個訓練日，以確保計畫效果！'); return; }
+
+            // 開啟載入畫面
+            document.getElementById('loadingOverlay').style.display = 'flex';
+
+            // 準備給 AI 的提示詞
+            const prompt = `
+            你是一位專業的馬拉松國家級教練。請幫一位跑者量身打造一份「2 週」的馬拉松訓練計畫。
+            目標賽事: ${goalRace}
+            跑者期望: ${goalTime}
+            每週固定的訓練天數: ${selectedDays.join(', ')}。其餘沒選的天數一律安排為「休息」。
+
+            請嚴格按照以下 JSON 格式回傳，不要包含任何 markdown 標記（如 \`\`\`json）、任何多餘的前言或後記，只能有 JSON 字串：
+            [
+              {
+                "week": 1,
+                "totalKm": 35,
+                "workouts": [
+                  { "day": "週一", "type": "休息", "details": "恢復日", "icon": "fa-bed", "iconBg": "rgba(142, 142, 147, 0.2)" },
+                  { "day": "週二", "type": "輕鬆跑", "details": "40分鐘，心率 Z2 區間", "icon": "fa-person-running", "iconBg": "rgba(50, 215, 75, 0.2)" },
+                  { "day": "週三", "type": "間歇跑", "details": "800m x 4趟", "icon": "fa-stopwatch", "iconBg": "rgba(191, 90, 242, 0.2)" },
+                  { "day": "週四", "type": "休息", "details": "恢復日", "icon": "fa-bed", "iconBg": "rgba(142, 142, 147, 0.2)" },
+                  { "day": "週五", "type": "輕鬆跑", "details": "30分鐘", "icon": "fa-person-running", "iconBg": "rgba(50, 215, 75, 0.2)" },
+                  { "day": "週六", "type": "休息", "details": "恢復日", "icon": "fa-bed", "iconBg": "rgba(142, 142, 147, 0.2)" },
+                  { "day": "週日", "type": "長距離", "details": "LSD 12公里", "icon": "fa-route", "iconBg": "rgba(255, 159, 10, 0.2)" }
+                ]
+              }
+            ]
+            注意：一週七天都要有，陣列裡要有 2 週。icon與iconBg請依照上面範例的顏色配對。
+            `;
+
+            try {
+                // 使用原生的 fetch 打向 Google Gemini 的 REST API 端點
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }]
+                    })
+                });
+
+                if (!response.ok) throw new Error(`HTTP 錯誤! 狀態碼: ${response.status}`);
+
+                const data = await response.json();
+                let responseText = data.candidates[0].content.parts[0].text.trim();
+
+                // 移除 Gemini 有時會擅自加上的 markdown 符號
+                if (responseText.startsWith("```json")) responseText = responseText.substring(7, responseText.length - 3);
+                else if (responseText.startsWith("```")) responseText = responseText.substring(3, responseText.length - 3);
+
+                const plan = JSON.parse(responseText.trim());
+                
+                // 將 AI 生成的 JSON 資料渲染到畫面上
+                renderGeminiPlan(plan, goalRace, goalTime);
+
+            } catch (error) {
+                console.error("Gemini 連線錯誤:", error);
+                alert("連線發生錯誤。可能是 API Key 無效、或是網路問題。請檢查主控台獲得詳細資訊。");
+            } finally {
+                // 關閉載入畫面
+                document.getElementById('loadingOverlay').style.display = 'none';
             }
+        }
 
-            if (selectedDays.length < 3) {
-                alert('請至少選擇 3 個訓練日，以確保計畫效果！');
-                return;
-            }
-
-            // --- Mock AI Logic ---
-            const planConfig = {
-                'stay-fit': { weeks: 4, name: '強身健體' },
-                '3k': { weeks: 4, name: '3K 挑戰' },
-                '5k': { weeks: 6, name: '5K 挑戰' },
-                '7.5k': { weeks: 8, name: '7.5K 挑戰' },
-                '10k': { weeks: 8, name: '10K 挑戰' },
-                'half-marathon': { weeks: 12, name: '半程馬拉松' },
-                'full-marathon': { weeks: 16, name: '全程馬拉松' }
-            };
-            const config = planConfig[goalRaceEl.value];
-            const plan = mockAiPlanner(config.weeks, selectedDays);
-            // --- End Mock AI Logic ---
-
-            // --- Render Plan ---
-            document.getElementById('plan-title').innerText = `${config.weeks}週 ${config.name} 訓練計畫`;
-            document.getElementById('plan-subtitle').innerText = `目標: ${goalTime || '順利完賽'}`;
+        // 把 AI 回傳的陣列動態畫到 HTML 上
+        function renderGeminiPlan(plan, goalRace, goalTime) {
+            document.getElementById('plan-title').innerText = `Gemini AI 客製 - ${goalRace}計畫`;
+            document.getElementById('plan-subtitle').innerText = `目標需求: ${goalTime}`;
             
             const vizContainer = document.getElementById('plan-visualization');
-            vizContainer.innerHTML = ''; // Clear previous plan
+            vizContainer.innerHTML = ''; 
 
             plan.forEach(weekData => {
                 let weekHtml = `
                     <div class="week-card animate__animated animate__fadeInUp">
                         <div class="week-header">
                             第 ${weekData.week} 週
-                            <span class="float-end text-muted small fw-normal">總跑量: ~${weekData.totalKm} KM</span>
+                            <span class="float-end text-muted small fw-normal">預估週跑量: ~${weekData.totalKm} KM</span>
                         </div>
                         <div class="week-body">
                 `;
@@ -866,47 +642,10 @@
                 vizContainer.innerHTML += weekHtml;
             });
 
-            // --- Switch Views ---
             document.getElementById('plan-generator-ui').style.display = 'none';
             document.getElementById('plan-display-ui').style.display = 'block';
             document.getElementById('plan-display-ui').scrollIntoView({ behavior: 'smooth' });
         }
-
-        function resetGenerator() {
-            document.getElementById('plan-display-ui').style.display = 'none';
-            document.getElementById('plan-generator-ui').style.display = 'block';
-        }
-
-        // This is a mock function. A real implementation would call a backend or a more complex client-side model.
-        function mockAiPlanner(totalWeeks, availableDays) {
-            const plan = [];
-            const workoutTypes = ['輕鬆跑', '間歇跑', '長距離', '休息'];
-            const workoutIcons = { '輕鬆跑': { icon: 'fa-person-running', bg: 'rgba(50, 215, 75, 0.2)' }, '間歇跑': { icon: 'fa-stopwatch', bg: 'rgba(191, 90, 242, 0.2)' }, '長距離': { icon: 'fa-route', bg: 'rgba(255, 159, 10, 0.2)' }, '休息': { icon: 'fa-bed', bg: 'rgba(142, 142, 147, 0.2)' } };
-            const dayAssignments = {};
-            const sortedDays = daysOfWeek.map(d => d.id).filter(d => availableDays.includes(d));
-            if (sortedDays.length > 0) dayAssignments[sortedDays[sortedDays.length - 1]] = '長距離';
-            if (sortedDays.length > 2) dayAssignments[sortedDays[Math.floor(sortedDays.length / 2)]] = '間歇跑';
-            for (let i = 1; i <= totalWeeks; i++) {
-                const weekData = { week: i, totalKm: 20 + (i * 2), workouts: [] };
-                daysOfWeek.forEach(day => {
-                    let workoutType = availableDays.includes(day.id) ? (dayAssignments[day.id] || '輕鬆跑') : '休息';
-                    let workoutDetail = '';
-                    switch(workoutType) {
-                        case '長距離': workoutDetail = `距離: ${8 + Math.floor(i * 1.2)} KM`; break;
-                        case '間歇跑': workoutDetail = `800m x ${Math.min(2 + Math.floor(i / 3), 8)} 趟`; break;
-                        case '輕鬆跑': workoutDetail = `30-45 分鐘，心率 Z2`; break;
-                        default: workoutType = '休息'; workoutDetail = '恢復日';
-                    }
-                    const iconInfo = workoutIcons[workoutType];
-                    weekData.workouts.push({ day: day.name, type: workoutType, details: workoutDetail, icon: iconInfo.icon, iconBg: iconInfo.bg });
-                });
-                plan.push(weekData);
-            }
-            return plan;
-        }
-
-        // Call init function on script load
-        initPlanGenerator();
     </script>
 </body>
 </html>
