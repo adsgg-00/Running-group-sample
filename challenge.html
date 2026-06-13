@@ -179,6 +179,15 @@
             .mobile-header { display: flex !important; }
         }
         
+        /* 使用者自訂：放大主內容區字體，但排除 h2 標題 */
+        .main-content {
+            font-size: 110%;
+        }
+        .main-content h2 {
+            /* Bootstrap h2 is 2rem. 2rem / 1.1 ≈ 1.818rem */
+            font-size: 1.82rem; 
+        }
+
         /* 手機版頂部導覽列 (僅在小螢幕顯示) */
         .mobile-header {
             display: none;
@@ -440,16 +449,16 @@
                 <div class="modal-body">
                     <form id="manualRunForm">
                         <div class="mb-3">
-                            <label class="form-label text-muted small fw-bold">活動標題</label>
+                            <label class="form-label text-white small fw-bold">活動標題</label>
                             <input type="text" class="form-control form-control-dark" id="inputTitle" placeholder="例如：夜跑、輕鬆跑" value="河濱夜跑">
                         </div>
                         <div class="row">
                             <div class="col-6 mb-3">
-                                <label class="form-label text-muted small fw-bold">總距離 (KM)</label>
+                                <label class="form-label text-white small fw-bold">總距離 (KM)</label>
                                 <input type="number" step="0.01" class="form-control form-control-dark" id="inputDist" placeholder="0.00" required>
                             </div>
                             <div class="col-6 mb-3">
-                                <label class="form-label text-muted small fw-bold">總時間 (分鐘)</label>
+                                <label class="form-label text-white small fw-bold">總時間 (分鐘)</label>
                                 <input type="number" class="form-control form-control-dark" id="inputTime" placeholder="例如: 45" required>
                             </div>
                         </div>
@@ -505,8 +514,9 @@
             [25.070, 121.485], [25.065, 121.488]
         ];
 
+        // 更改地圖設定為可互動
         const map = L.map('runMap', {
-            zoomControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false
+            zoomControl: false, dragging: true, scrollWheelZoom: true
         }).setView([25.066, 121.502], 14);
 
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -516,7 +526,10 @@
         const polyline = L.polyline(mockRoute, {
             color: '#32d74b', weight: 5, opacity: 0.9, lineJoin: 'round'
         }).addTo(map);
+        const bounds = polyline.getBounds().pad(0.2); // 緩衝 20%
         map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
+        map.setMaxBounds(bounds);
+        map.setMinZoom(map.getZoom()); // 限制最小縮放層級，避免縮太小
 
 
         // ==========================================
