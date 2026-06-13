@@ -103,6 +103,7 @@
         /* 黑暗模式 Modal 彈出視窗 */
         .modal-content-dark { background-color: var(--card-dark); color: var(--text-main); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; }
         .form-control-dark { background-color: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 12px; }
+        .form-control-dark::placeholder { color: rgba(255, 255, 255, 0.7); }
         .form-control-dark:focus { background-color: rgba(255,255,255,0.1); color: white; border-color: var(--r-green); box-shadow: none; }
         .form-select.form-control-dark option { background: var(--card-dark); color: var(--text-main); }
 
@@ -195,7 +196,7 @@
         
         <div class="mt-5 px-3 position-absolute bottom-0 mb-4">
             <div class="stat-label mb-2">設備連線狀況</div>
-            <div class="d-flex align-items-center gap-2 text-muted" style="font-size: 0.85rem;">
+            <div class="d-flex align-items-center gap-2" style="font-size: 0.85rem;">
                 <i class="fa-solid fa-stopwatch" style="color: var(--r-green);"></i> Garmin Forerunner 965
             </div>
         </div>
@@ -313,7 +314,7 @@
                     <div class="text-center mb-5">
                         <i class="fa-solid fa-brain fa-3x mb-3" style="color: var(--r-purple);"></i>
                         <h2 class="fw-bold">打造您的專屬訓練計畫</h2>
-                        <p class="text-muted">告訴 AI 您的目標，我們將透過 Gemini 生成一份最適合您的訓練課表。</p>
+                        <p>告訴 AI 您的目標，我們將透過 Gemini 生成一份最適合您的訓練課表。</p>
                     </div>
 
                     <form id="plan-request-form">
@@ -367,7 +368,7 @@
 
         <div id="tab-records" class="tab-pane">
             <h2 class="fw-bold mb-4">所有活動紀錄</h2>
-            <p class="text-muted">這裡將連接您的 Garmin Connect 歷史資料。</p>
+            <p>這裡將連接您的 Garmin Connect 歷史資料。</p>
         </div>
         
         <div id="tab-achievements" class="tab-pane">
