@@ -126,7 +126,11 @@
 
         /* 覆蓋 Leaflet 預設樣式 */
         .leaflet-control-attribution, .leaflet-control-attribution a {
-            color: white !important;
+            color: var(--text-muted) !important;
+            font-size: 0.7rem !important;
+        }
+        .leaflet-control-attribution a:hover {
+            color: var(--text-main) !important;
         }
 
         /* 訓練日曆列表 */
@@ -163,6 +167,11 @@
             color: white;
             border-color: var(--r-green);
             box-shadow: none;
+        }
+        /* 讓下拉選單在深色模式下更好看 */
+        .form-select.form-control-dark option {
+            background: var(--card-dark);
+            color: var(--text-main);
         }
 
         /* 按鈕樣式 */
@@ -277,7 +286,7 @@
             <div class="rounded-circle bg-secondary" style="width: 45px; height: 45px; background: url('image/Eliud Kipchoge.jpg') center/cover;"></div>
             <div>
                 <div class="fw-bold fs-6">商逢育</div>
-                <div class="text-muted" style="font-size: 0.8rem;">台北市, 台灣</div>
+                <div class="text-white" style="font-size: 0.8rem;">台北市, 台灣</div>
             </div>
         </div>
 
@@ -446,6 +455,10 @@
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">1. 選擇您的主要目標</label>
                                 <select id="goal-race" class="form-select form-control-dark fs-5 p-3">
+                                    <option value="stay-fit">強身健體</option>
+                                    <option value="3k">3K 挑戰</option>
+                                    <option value="5k">5K 挑戰</option>
+                                    <option value="7.5k">7.5K 挑戰</option>
                                     <option value="10k">10K 挑戰</option>
                                     <option value="half-marathon">半程馬拉松</option>
                                     <option value="full-marathon" selected>全程馬拉松</option>
@@ -788,8 +801,15 @@
 
         function generatePlan() {
             const goalRaceEl = document.getElementById('goal-race');
-            const goalTime = document.getElementById('goal-time').value;
+            const goalTimeInput = document.getElementById('goal-time');
+            const goalTime = goalTimeInput.value;
             const selectedDays = Array.from(document.querySelectorAll('#training-days input:checked')).map(el => el.value);
+
+            if (!goalTime.trim()) {
+                alert('請輸入您的目標完賽時間！');
+                goalTimeInput.focus();
+                return;
+            }
 
             if (selectedDays.length < 3) {
                 alert('請至少選擇 3 個訓練日，以確保計畫效果！');
@@ -798,9 +818,13 @@
 
             // --- Mock AI Logic ---
             const planConfig = {
-                'full-marathon': { weeks: 16, name: '全程馬拉松' },
+                'stay-fit': { weeks: 4, name: '強身健體' },
+                '3k': { weeks: 4, name: '3K 挑戰' },
+                '5k': { weeks: 6, name: '5K 挑戰' },
+                '7.5k': { weeks: 8, name: '7.5K 挑戰' },
+                '10k': { weeks: 8, name: '10K 挑戰' },
                 'half-marathon': { weeks: 12, name: '半程馬拉松' },
-                '10k': { weeks: 8, name: '10K 挑戰' }
+                'full-marathon': { weeks: 16, name: '全程馬拉松' }
             };
             const config = planConfig[goalRaceEl.value];
             const plan = mockAiPlanner(config.weeks, selectedDays);
