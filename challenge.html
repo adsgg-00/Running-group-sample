@@ -119,11 +119,15 @@
             display: flex;
             justify-content: space-between;
         }
-        
         .stat-box { text-align: center; }
-        .stat-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+        .stat-label { font-size: 0.75rem; color: var(--text-main); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
         .stat-value { font-size: 1.6rem; font-weight: 800; font-variant-numeric: tabular-nums; }
         .text-green { color: var(--r-green); }
+
+        /* 覆蓋 Leaflet 預設樣式 */
+        .leaflet-control-attribution, .leaflet-control-attribution a {
+            color: white !important;
+        }
 
         /* 訓練日曆列表 */
         .calendar-item {
@@ -228,13 +232,13 @@
             .mobile-header { display: flex !important; }
         }
         
-        /* 使用者自訂：放大主內容區字體，但排除 h2 標題 */
+        /* 使用者自訂：縮小主內容區字體，但排除 h2 標題 */
         .main-content {
-            font-size: 110%;
+            font-size: 90%;
         }
         .main-content h2 {
-            /* Bootstrap h2 is 2rem. 2rem / 1.1 ≈ 1.818rem */
-            font-size: 1.82rem; 
+            /* Bootstrap h2 is 2rem. 2rem / 0.9 ≈ 2.222rem */
+            font-size: 2.22rem; 
         }
 
         /* 手機版頂部導覽列 (僅在小螢幕顯示) */
@@ -308,7 +312,7 @@
             <div class="d-flex justify-content-between align-items-end mb-4">
                 <div>
                     <h2 class="fw-bold mb-1">早安，準備好今天的挑戰了嗎？</h2>
-                    <p class="text-muted">這是你本週的訓練摘要與最新活動紀錄。</p>
+                    <p>這是你本週的訓練摘要與最新活動紀錄。</p>
                 </div>
                 <!-- 觸發手動新增 Modal -->
                 <button class="btn btn-outline-light rounded-pill px-4 fw-bold d-none d-md-block" data-bs-toggle="modal" data-bs-target="#addRunModal">
@@ -324,7 +328,7 @@
                     </div>
                     <div>
                         <h5 class="fw-bold mb-0" id="dash-run-title">11mi Long Run (長距離訓練)</h5>
-                        <div class="text-muted small"><i class="fa-regular fa-clock me-1"></i> <span id="dash-run-time">昨天 上午 06:30</span> · 台北市河濱公園</div>
+                        <div class="small"><i class="fa-regular fa-clock me-1"></i> <span id="dash-run-time">昨天 上午 06:30</span> · 台北市河濱公園</div>
                     </div>
                 </div>
 
@@ -334,7 +338,7 @@
                     <div class="map-overlay-stats shadow-lg">
                         <div class="stat-box">
                             <div class="stat-label">距離</div>
-                            <div class="stat-value"><span id="dash-val-dist">17.73</span><span class="fs-6 text-muted ms-1">KM</span></div>
+                            <div class="stat-value"><span id="dash-val-dist">17.73</span><span class="fs-6 ms-1">KM</span></div>
                         </div>
                         <div class="stat-box">
                             <div class="stat-label">時間</div>
@@ -342,7 +346,7 @@
                         </div>
                         <div class="stat-box">
                             <div class="stat-label">平均配速</div>
-                            <div class="stat-value text-green"><span id="dash-val-pace">5'40"</span><span class="fs-6 text-muted ms-1">/km</span></div>
+                            <div class="stat-value text-green"><span id="dash-val-pace">5'40"</span><span class="fs-6 ms-1">/km</span></div>
                         </div>
                         <div class="stat-box d-none d-sm-block">
                             <div class="stat-label">平均心率</div>
