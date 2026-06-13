@@ -24,6 +24,9 @@
             --text-main: #ffffff;
             --text-muted: #8e8e93;
         }
+        .text-muted {
+            color: #ffffff !important;
+        }
 
         body {
             background-color: var(--bg-dark);
@@ -628,7 +631,7 @@
         let performanceChart = new Chart(ctx, {
             type: 'bar',
             data: { labels: data7Days.labels, datasets: [{ label: '距離 (KM)', data: data7Days.data, backgroundColor: '#bf5af2', borderRadius: 6, barPercentage: 0.5 }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#8e8e93' } }, x: { grid: { display: false }, ticks: { color: '#8e8e93' } } } }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#ffffff' } }, x: { grid: { display: false }, ticks: { color: '#ffffff' } } } }
         });
         
         function updateChartData() {
