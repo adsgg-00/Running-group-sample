@@ -640,11 +640,10 @@
             
             // 如果從來沒授權過，或是 Token 被清掉，引導去登入
             if (!accessToken) {
-                const confirmAuth = confirm("準備連接您的 Strava 帳號！\n\n這將會跳轉至 Strava 官方授權頁面，請允許讀取「運動紀錄」權限。");
+                const confirmAuth = confirm("準備連接您的 Strava 帳號！\n\n【重要設定】\n請先確認您已在 Strava API 設定頁面，將「Authorization Callback Domain」設為「localhost」，否則將會失敗。\n\n點擊「確定」後將跳轉至 Strava 官方授權頁面。");
                 if (confirmAuth) {
                     // 構建跳轉回來的網址 (就是目前的網址)
                     const currentUrl = window.location.href.split('?')[0];
-                    // 這是最重要的：要求 activity:read_all 權限！
                     const authUrl = `https://www.strava.com/oauth/authorize?client_id=${STRAVA_CLIENT_ID}&response_type=code&redirect_uri=${currentUrl}&approval_prompt=force&scope=read,activity:read_all`;
                     window.location.href = authUrl;
                 }
