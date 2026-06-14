@@ -190,7 +190,6 @@
                             <h5 class="fw-bold mb-0">即將到來的課表</h5>
                             <span class="badge bg-dark border border-secondary text-light">第 4 週 / 共 16 週</span>
                         </div>
-                        <!-- 日曆假資料省略，保持版面乾淨 -->
                         <div class="calendar-item" style="opacity: 0.6;"><div class="cal-date"><div class="cal-day">MON</div><div class="cal-num">14</div></div><div class="workout-tag tag-green"></div><div class="flex-grow-1"><h6 class="fw-bold mb-1">輕鬆跑 (Easy Run)</h6><div class="text-muted small">目標: 7.0 KM · 配速 6'15"</div></div><i class="fa-solid fa-circle-check fs-4" style="color: var(--r-green);"></i></div>
                         <div class="calendar-item"><div class="cal-date"><div class="cal-day text-white">WED</div><div class="cal-num text-white">16</div></div><div class="workout-tag tag-purple"></div><div class="flex-grow-1"><h6 class="fw-bold mb-1">間歇訓練 (Intervals)</h6><div class="text-muted small">目標: 800m x 6 趟 · 恢復 90秒</div></div><div id="workout-action-btn"><button class="btn btn-sm btn-r-primary px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#startWorkoutModal">今日開始</button></div></div>
                         <div class="calendar-item"><div class="cal-date"><div class="cal-day">SUN</div><div class="cal-num">20</div></div><div class="workout-tag" style="background-color: var(--r-orange);"></div><div class="flex-grow-1"><h6 class="fw-bold mb-1">長距離訓練 (LSD)</h6><div class="text-muted small">目標: 21.0 KM · 保持心率區間 2</div></div><i class="fa-solid fa-lock fs-5 text-muted"></i></div>
@@ -570,6 +569,11 @@
         const STRAVA_CLIENT_ID = '257979';
         const STRAVA_CLIENT_SECRET = '44f225b506bc4b5c6bab16d0162b1e4a3303150f';
 
+        // 🚨 新增：防止使用者直接雙擊 HTML 檔案開啟 (file:///)
+        if (window.location.protocol === 'file:') {
+            alert("⚠️ 安全限制錯誤：不能直接雙擊 HTML 檔案開啟！\n\n因為 Strava 的安全機制不允許跳轉回本機路徑 (file:///)。\n\n💡 解決方法：\n請在 VS Code 裡面安裝「Live Server」擴充套件，然後在檔案上按右鍵選擇「Open with Live Server」，讓網址變成 http://127.0.0.1:5500/... 才能順利登入！");
+        }
+
         // 頁面載入時檢查網址是否有 Strava 授權碼 (?code=...)
         window.addEventListener('load', async () => {
             const urlParams = new URLSearchParams(window.location.search);
@@ -626,6 +630,12 @@
 
         // 點擊「同步 Strava」按鈕觸發的函式
         async function handleStravaSync() {
+            // 再次檢查 file:// 避免錯誤
+            if (window.location.protocol === 'file:') {
+                alert("⚠️ 請透過 Live Server 開啟網頁才能使用 Strava 登入功能！");
+                return;
+            }
+
             const accessToken = localStorage.getItem('strava_access_token');
             
             // 如果從來沒授權過，或是 Token 被清掉，引導去登入
