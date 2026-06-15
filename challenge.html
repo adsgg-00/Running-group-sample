@@ -759,11 +759,10 @@
                     const refreshToken = localStorage.getItem('strava_refresh_token');
                     if(!refreshToken) throw new Error("Token 過期且無法刷新，請重新授權。");
                     document.getElementById('loadingText').innerText = "Token 已過期，正在自動展延...";
-                    const refreshRes = await fetch('https://www.strava.com/oauth/token', {
-                        // Token 刷新流程仍需 client_id 和 secret，但這應在後端完成
-                        // 這裡暫時保留，但理想情況是建立一個 /api/strava/refresh 端點
+                    // 安全地透過後端刷新 Token
+                    const refreshRes = await fetch('http://127.0.0.1:5000/api/strava/refresh', {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ client_id: '257979', client_secret: '44f225b506bc4b5c6bab16d0162b1e4a3303150f', grant_type: 'refresh_token', refresh_token: refreshToken })
+                        body: JSON.stringify({ refresh_token: refreshToken })
                     });
                     if(!refreshRes.ok) {
                         localStorage.removeItem('strava_access_token'); localStorage.removeItem('strava_refresh_token');

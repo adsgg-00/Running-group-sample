@@ -175,5 +175,19 @@ def strava_callback():
     response = requests.post(token_url, data=payload)
     return jsonify(response.json()), response.status_code
 
+# 7. Strava OAuth - Step 3: Securely refresh the access token
+@app.route("/api/strava/refresh", methods=["POST"])
+def strava_refresh():
+    refresh_token = request.json.get("refresh_token")
+    token_url = "https://www.strava.com/oauth/token"
+    payload = {
+        "client_id": STRAVA_CLIENT_ID,
+        "client_secret": STRAVA_CLIENT_SECRET,
+        "grant_type": "refresh_token",
+        "refresh_token": refresh_token
+    }
+    response = requests.post(token_url, data=payload)
+    return jsonify(response.json()), response.status_code
+
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
