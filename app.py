@@ -99,9 +99,9 @@ def generate_plan():
           }}
         ]
         注意：一週七天都要有，陣列裡要有 2 週。icon與iconBg請依照上面範例的顏色配對。"""
+        # ✅ 正確的網址
+        gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
 
-        gemini_url = f"[https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=](https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=){GEMINI_API_KEY}"
-        
         response = requests.post(
             gemini_url,
             json={"contents": [{"parts": [{"text": prompt}]}]},
