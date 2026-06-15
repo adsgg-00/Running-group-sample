@@ -75,6 +75,9 @@ def save_activity():
 # 4. Gemini AI 課表生成中轉站
 @app.route("/api/generate-plan", methods=["POST"])
 def generate_plan():
+    # 🚨 新增偵錯代碼，它會把金鑰的開頭印出來給你看
+    print(f"正在使用的金鑰開頭: {GEMINI_API_KEY[:6]}...")
+
     try:
         req_data = request.get_json()
         goal_race = req_data.get("goalRace")
