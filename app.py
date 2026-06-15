@@ -14,16 +14,14 @@ def home():
     return jsonify({"status": "success", "message": "後端伺服器運作中！"})
 
 
-# 🚨 新增：Gemini 智慧中轉路由 🚨
+# 🚨 Gemini 智慧中轉路由 🚨
 @app.route("/api/generate-plan", methods=["POST"])
 def generate_plan():
-    # 接收來自前端網頁的參數
     req_data = request.get_json()
     goal_race = req_data.get("goalRace")
     goal_time = req_data.get("goalTime")
     selected_days = req_data.get("selectedDays")
 
-    # 構建給 AI 的 Prompt
     prompt = f"""你是一位專業的馬拉松國家級教練。請幫一位跑者量身打造一份「2 週」的馬拉松訓練計畫。
     目標賽事: {goal_race}
     跑者期望: {goal_time}
@@ -48,7 +46,6 @@ def generate_plan():
     注意：一週七天都要有，陣列裡要有 2 週。icon與iconBg請依照上面範例的顏色配對。"""
 
     try:
-        # 由 Python 後端發送請求給 Google 伺服器
         gemini_url = f"[https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=](https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=){GEMINI_API_KEY}"
         response = requests.post(
             gemini_url,
@@ -57,21 +54,14 @@ def generate_plan():
         )
 
         if response.status_code != 200:
-            return (
-                jsonify(
-                    {
-                        "error": f"Google API 回傳錯誤碼: {response.status_code}"
-                    }
-                ),
-                400,
-            )
+            return jsonify({"error": f"Google API 回傳錯誤碼: {response.status_code}"}), 400
 
         res_json = response.json()
         raw_text = res_json["candidates"][0]["content"]["parts"][0]["text"].strip()
 
-        # JSON 強固裁剪器
-        json_start = raw_text.indexOf("[") if hasattr(raw_text, "indexOf") else raw_text.find("[")
-        json_end = raw_text.lastIndexOf("]") if hasattr(raw_text, "lastIndexOf") else raw_text.rfind("]")
+        # 🔧 修正：純 Python 的字串裁剪語法 (.find 與 .rfind)
+        json_start = raw_text.find("[")
+        json_end = raw_text.rfind("]")
         if json_start != -1 and json_end != -1:
             raw_text = raw_text[json_start : json_end + 1]
 
