@@ -22,3 +22,11 @@
 撰寫高質感的 README.md： 在 GitHub 儲存庫中，放上網頁的精美截圖、GIF 動畫，並詳細說明你的系統架構（例如為何選擇 Strava 作為 Garmin 數據的中轉站）。
 
 錄製 Demo 影片： 實際錄一段自己操作網頁、成功生成 AI 課表並同步 Strava 軌跡的短影片，這在投遞履歷或面試展示時非常有說服力。
+
+Flask 開啟說明
+點亮後端大腦 (Python Flask)
+動作： 打開 VS Code，確保你的終端機路徑在專案資料夾下，輸入以下指令並按下 Enter：
+Bash
+python app.py
+
+如何確認成功： 終端機會印出 * Running on http://127.0.0.1:5000。這代表 Port 5000 伺服器已就緒。
