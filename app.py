@@ -2,7 +2,6 @@ import os
 from flask_cors import CORS
 from flask import Flask, jsonify, request, g
 from dotenv import load_dotenv
-import google.generativeai as genai
 import requests
 import sqlite3
 import traceback
