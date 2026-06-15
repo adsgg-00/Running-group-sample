@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 import requests
 import sqlite3
 import traceback
-
+import google.generativeai as genai  # 👈 新增這行：引入 Gemini 套件
 # 🚨 載入 .env
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
