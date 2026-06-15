@@ -11,14 +11,22 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 
     <style>
-        /* CSS 樣式完全保留，維持高級暗黑質感 */
+        /* CSS 樣式保留高級暗黑質感，並大幅提升字體亮度 */
         :root {
             --bg-dark: #0a0a0c; --card-dark: #1c1c1e; --r-green: #32d74b;  
-            --r-purple: #bf5af2; --r-orange: #ff9f0a; --text-main: #ffffff; --text-muted: #8e8e93;
+            --r-purple: #bf5af2; --r-orange: #ff9f0a; --text-main: #ffffff; 
+            /* 將原本的暗灰色改為高亮白，確保閱讀清晰 */
+            --text-muted: #ffffff; 
         }
-        body { background-color: var(--bg-dark); color: var(--text-main); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif; overflow-x:        .text-muted {
-            color: #ffffff !important;
+        body { background-color: var(--bg-dark); color: var(--text-main); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif; overflow-x: hidden; }
+        
+        /* 🚨 強制覆寫所有小字體與次要文字為白色 🚨 */
+        .text-muted, .small, small { 
+            color: #ffffff !important; 
+            font-weight: 500 !important;
+            opacity: 0.95; /* 保留極微小的層次感，但視覺上是全白 */
         }
+
         .sidebar { background-color: var(--bg-dark); height: 100vh; border-right: 1px solid rgba(255,255,255,0.1); position: fixed; width: 250px; padding: 30px 20px; z-index: 100; }
         .nav-item-r { display: flex; align-items: center; padding: 12px 15px; color: var(--text-muted); text-decoration: none; border-radius: 12px; margin-bottom: 8px; transition: all 0.2s ease; font-weight: 600; cursor: pointer; }
         .nav-item-r:hover { background-color: rgba(255, 255, 255, 0.05); color: var(--text-main); }
@@ -51,8 +59,8 @@
         .form-control:focus, .form-select:focus { background-color: rgba(255,255,255,0.1) !important; color: #ffffff !important; border-color: var(--r-purple) !important; box-shadow: 0 0 0 4px rgba(191, 90, 242, 0.2) !important; }
         .form-select { background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important; }
         .form-select option { background-color: var(--bg-dark) !important; color: var(--text-main) !important; }
-        .btn-r-primary { background-color: var(--r-purple); color: var(--text-main); font-weight: 700; border-radius: 20px; transition: 0.2s; border: none; }
-        .btn-r-primary:hover { background-color: #d16efc; transform: scale(1.02); }
+        .btn-r-primary { background-color: var(--text-main); color: var(--bg-dark); font-weight: 700; border-radius: 20px; transition: 0.2s; border: none; }
+        .btn-r-primary:hover { background-color: #e0e0e0; transform: scale(1.02); }
         .btn-gradient-purple { background: linear-gradient(135deg, #bf5af2 0%, #5e5ce6 100%); color: white; font-weight: bold; border: none; border-radius: 25px; transition: all 0.3s ease; }
         .btn-gradient-purple:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(191, 90, 242, 0.4); color: white; }
         .day-checkbox { display: none; }
@@ -67,8 +75,11 @@
         .workout-type { font-weight: 700; font-size: 1.1rem; margin-bottom: 2px;}
         .workout-details { font-size: 0.9rem; color: var(--text-muted); }
         .workout-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
-        .record-list-item { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s; }
-        .record-list-item:hover { background-color: rgba(255,255,255,0.02); }
+        
+        /* 🚨 活動紀錄列表新增 Hover 與 Pointer，提示可點擊跳轉 🚨 */
+        .record-list-item { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s; cursor: pointer; }
+        .record-list-item:hover { background-color: rgba(255,255,255,0.08); border-radius: 12px; }
+        
         .badge-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 20px; }
         .achievement-badge { background-color: var(--card-dark); border-radius: 20px; padding: 20px; text-align: center; border: 1px solid rgba(255,255,255,0.05); transition: 0.3s; position: relative; }
         .achievement-badge.locked { opacity: 0.4; filter: grayscale(1); }
@@ -153,12 +164,12 @@
 
             <div class="r-card p-2 p-md-3">
                 <div class="d-flex align-items-center px-3 pt-2 mb-3">
-                    <div class="rounded bg-purple me-3 shadow-sm" style="width:36px; height:36px; background-color: var(--r-purple); display:flex; justify-content:center; align-items:center;">
+                    <div class="rounded bg-purple me-3 shadow-sm" id="overview-icon-container" style="width:36px; height:36px; display:flex; justify-content:center; align-items:center;">
                         <i class="fa-solid fa-person-running text-white"></i>
                     </div>
                     <div>
                         <h5 class="fw-bold mb-0" id="dash-run-title">11mi Long Run (長距離訓練)</h5>
-                        <div class="small text-muted"><i class="fa-regular fa-clock me-1"></i> <span id="dash-run-time">昨天 上午 06:30</span> · 台北市河濱公園</div>
+                        <div class="small text-muted"><i class="fa-regular fa-clock me-1"></i> <span id="dash-run-time">昨天 上午 06:30</span></div>
                     </div>
                 </div>
 
@@ -285,7 +296,6 @@
                 </div>
             </div>
 
-            <!-- 計畫顯示 UI -->
             <div id="plan-display-ui" style="display: none;">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
@@ -313,7 +323,8 @@
             
             <div class="r-card p-0" style="overflow: hidden;">
                 <div id="records-container">
-                    <div class="record-list-item">
+                    <!-- 預設寫死的測試卡片，綁定點擊事件回首頁 -->
+                    <div class="record-list-item" onclick="viewActivityDetails(0)" title="點擊查看詳細資訊">
                         <div class="d-flex align-items-center">
                             <div class="rounded-circle bg-dark border border-secondary d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
                                 <i class="fa-solid fa-person-running text-success fs-5"></i>
@@ -360,7 +371,7 @@
 
     </main>
 
-    <!-- 模態框視窗 (維持不變) -->
+    <!-- 模態框視窗 -->
     <div class="modal fade" id="startWorkoutModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content modal-content-dark shadow-lg">
@@ -405,6 +416,24 @@
 
     <script>
         // ==========================================
+        // 🚨 全局活動資料庫 (Global State) 🚨
+        // 用來儲存所有抓取到或手動新增的運動資料，以利點擊卡片時重新讀取
+        // ==========================================
+        let globalActivities = [
+            {
+                title: '11mi Long Run (長距離訓練)',
+                date: '2026/06/12 · 台北市河濱公園',
+                dist: '17.73',
+                time: '01:40:38',
+                pace: '5\'40"',
+                hr: '151',
+                type: 'Run',
+                source: 'default',
+                polyline: null // 預設資料沒有加密字串，直接吃 default mockRoute
+            }
+        ];
+
+        // ==========================================
         // 1. 頁籤切換與 UI
         // ==========================================
         function switchTab(tabId, element) {
@@ -438,7 +467,55 @@
         }
 
         // ==========================================
-        // 3. 成就與手動功能
+        // 🚨 3. 動態點擊切換活動細節 🚨
+        // ==========================================
+        function viewActivityDetails(index) {
+            const act = globalActivities[index];
+            if (!act) return;
+
+            // 切換主看板的圖標與顏色
+            let iconClass = 'fa-person-running';
+            if(act.type === 'Ride') iconClass = 'fa-person-biking';
+            if(act.type === 'Swim') iconClass = 'fa-person-swimming';
+            document.getElementById('overview-icon-container').innerHTML = `<i class="fa-solid ${iconClass} text-white"></i>`;
+
+            // 更新主看板數據
+            let sourceBadge = act.source === 'strava' ? `<span class="badge bg-danger ms-2"><i class="fa-brands fa-strava"></i> Strava</span>` : '';
+            if (act.source === 'manual') sourceBadge = `<span class="badge bg-success ms-2">手動新增</span>`;
+
+            document.getElementById('dash-run-title').innerHTML = `${act.title} ${sourceBadge}`;
+            document.getElementById('dash-run-time').innerText = act.date;
+            
+            const distEl = document.getElementById('dash-val-dist');
+            distEl.innerText = act.dist;
+            distEl.classList.remove('animate__animated', 'animate__flash');
+            void distEl.offsetWidth; // 觸發重繪
+            distEl.classList.add('animate__animated', 'animate__flash');
+
+            document.getElementById('dash-val-time').innerText = act.time;
+            document.getElementById('dash-val-pace').innerText = act.pace;
+            document.getElementById('dash-val-hr').innerText = act.hr;
+
+            // 更新地圖軌跡
+            if (polyline) map.removeLayer(polyline);
+            if (act.polyline) {
+                const decodedPath = polylineDecoder(act.polyline);
+                polyline = L.polyline(decodedPath, { color: '#fc4c02', weight: 5, opacity: 0.9, lineJoin: 'round' }).addTo(map);
+                map.fitBounds(polyline.getBounds(), { padding: [20, 20] });
+            } else {
+                // 如果沒有軌跡 (例如手動新增或預設)，就顯示一條簡單的預設路線
+                polyline = L.polyline(mockRoute, { color: '#32d74b', weight: 5, opacity: 0.9, lineJoin: 'round' }).addTo(map);
+                map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
+            }
+
+            // 動態跳轉回「訓練總覽」分頁，並滾動到頂部
+            switchTab('tab-overview', document.querySelectorAll('.nav-item-r')[0]);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+
+        // ==========================================
+        // 4. 成就與手動功能
         // ==========================================
         let currentWeeklyMileage = 29.73;
 
@@ -463,27 +540,54 @@
             const title = document.getElementById('inputTitle').value, dist = parseFloat(document.getElementById('inputDist').value), timeMins = parseInt(document.getElementById('inputTime').value);
             if(!dist || !timeMins) { alert("請填寫距離與時間！"); return; }
             bootstrap.Modal.getInstance(document.getElementById('addRunModal')).hide();
+            
             const paceMins = Math.floor(timeMins / dist), paceSecs = Math.round((timeMins / dist - paceMins) * 60), h = Math.floor(timeMins / 60), m = timeMins % 60;
             const formattedPace = `${paceMins}'${paceSecs.toString().padStart(2, '0')}"`;
             const formattedTime = h > 0 ? `${h}:${m.toString().padStart(2, '0')}:00` : `${m.toString().padStart(2, '0')}:00`;
             
-            document.getElementById('dash-run-title').innerHTML = `${title} <span class="badge bg-success ms-2 animate__animated animate__fadeIn">New</span>`;
-            document.getElementById('dash-run-time').innerText = '剛剛';
-            const distEl = document.getElementById('dash-val-dist'); distEl.innerText = dist.toFixed(2); distEl.classList.add('animate__animated', 'animate__flash');
-            document.getElementById('dash-val-time').innerText = formattedTime; document.getElementById('dash-val-pace').innerText = formattedPace;
-            document.getElementById('dash-val-hr').innerText = '--';
+            // 寫入全球資料庫
+            const newActIndex = globalActivities.length;
+            globalActivities.push({
+                title: title,
+                date: '剛剛 · 手動輸入',
+                dist: dist.toFixed(2),
+                time: formattedTime,
+                pace: formattedPace,
+                hr: '--',
+                type: 'Run',
+                source: 'manual',
+                polyline: null
+            });
             
             const recordsContainer = document.getElementById('records-container');
-            const newRecordHtml = `<div class="record-list-item animate__animated animate__fadeInDown"><div class="d-flex align-items-center"><div class="rounded-circle bg-dark border border-secondary d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;"><i class="fa-solid fa-person-running text-success fs-5"></i></div><div><h6 class="fw-bold mb-1">${title}</h6><div class="text-muted small">剛剛 · 手動輸入</div></div></div><div class="text-end"><div class="fw-bold fs-5 text-white">${dist.toFixed(2)} KM</div><div class="text-muted small">${formattedTime} | ${formattedPace}/km</div></div></div>`;
+            const newRecordHtml = `
+                <div class="record-list-item animate__animated animate__fadeInDown" onclick="viewActivityDetails(${newActIndex})" title="點擊查看詳細資訊">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle bg-dark border border-secondary d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
+                            <i class="fa-solid fa-person-running text-success fs-5"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-1">${title}</h6>
+                            <div class="text-muted small">剛剛 · 手動輸入</div>
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <div class="fw-bold fs-5 text-white">${dist.toFixed(2)} KM</div>
+                        <div class="text-muted small">${formattedTime} | ${formattedPace}/km</div>
+                    </div>
+                </div>
+            `;
             recordsContainer.insertAdjacentHTML('afterbegin', newRecordHtml);
+
+            // 直接觸發檢視此活動
+            viewActivityDetails(newActIndex);
 
             data7Days.data[3] += dist; currentWeeklyMileage += dist; data4Weeks.data[3] = currentWeeklyMileage;
             updateChartData(); checkAchievements(); document.getElementById('manualRunForm').reset();
-            setTimeout(() => { distEl.classList.remove('animate__animated', 'animate__flash'); }, 1000);
         }
 
         // ==========================================
-        // 4. Gemini AI 生成器
+        // 5. Gemini AI 生成器
         // ==========================================
         const daysOfWeek = [{ id: 'mon', name: '週一' }, { id: 'tue', name: '週二' }, { id: 'wed', name: '週三' }, { id: 'thu', name: '週四' }, { id: 'fri', name: '週五' }, { id: 'sat', name: '週六' }, { id: 'sun', name: '週日' }];
         daysOfWeek.forEach(day => { document.getElementById('training-days').innerHTML += `<div><input type="checkbox" class="day-checkbox" id="day-${day.id}" value="${day.id}"><label class="day-label" for="day-${day.id}">${day.name}</label></div>`; });
@@ -565,53 +669,39 @@
 
 
         // ==========================================
-        // 🚨 5. 終極 Strava OAuth 2.0 自動登入系統 🚨
+        // 🚨 6. 終極 Strava OAuth 2.0 自動登入系統 🚨
         // ==========================================
         
         const STRAVA_CLIENT_ID = '257979';
         const STRAVA_CLIENT_SECRET = '44f225b506bc4b5c6bab16d0162b1e4a3303150f';
 
-        // 🚨 新增：防止使用者直接雙擊 HTML 檔案開啟 (file:///)
         if (window.location.protocol === 'file:') {
-            alert("⚠️ 安全限制錯誤：不能直接雙擊 HTML 檔案開啟！\n\n因為 Strava 的安全機制不允許跳轉回本機路徑 (file:///)。\n\n💡 解決方法：\n請在 VS Code 裡面安裝「Live Server」擴充套件，然後在檔案上按右鍵選擇「Open with Live Server」，讓網址變成 http://127.0.0.1:5500/... 才能順利登入！");
+            alert("⚠️ 安全限制錯誤：請在 VS Code 使用「Live Server」開啟網頁，否則無法進行 Strava 登入驗證。");
         }
 
-        // 頁面載入時檢查網址是否有 Strava 授權碼 (?code=...)
         window.addEventListener('load', async () => {
             const urlParams = new URLSearchParams(window.location.search);
             const code = urlParams.get('code');
             
-            // 如果網址上有 code，代表使用者剛從 Strava 授權完跳轉回來
             if (code) {
-                // 啟動載入遮罩
                 document.getElementById('loadingText').innerText = "Strava 授權成功！";
                 document.getElementById('loadingSubtext').innerText = "正在為您交換存取權杖...";
                 document.getElementById('loadingOverlay').style.display = 'flex';
 
                 try {
-                    // 使用 code 向 Strava 換取真正的 Access Token
                     const response = await fetch('https://www.strava.com/oauth/token', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            client_id: STRAVA_CLIENT_ID,
-                            client_secret: STRAVA_CLIENT_SECRET,
-                            code: code,
-                            grant_type: 'authorization_code'
-                        })
+                        body: JSON.stringify({ client_id: STRAVA_CLIENT_ID, client_secret: STRAVA_CLIENT_SECRET, code: code, grant_type: 'authorization_code' })
                     });
 
                     const data = await response.json();
                     
                     if(data.access_token) {
-                        // 成功拿到 Token，存進使用者的瀏覽器裡
                         localStorage.setItem('strava_access_token', data.access_token);
                         localStorage.setItem('strava_refresh_token', data.refresh_token);
-                        
-                        // 清理網址上的 ?code= 參數，讓網址變乾淨
                         window.history.replaceState({}, document.title, window.location.pathname);
                         
-                        // 自動幫使用者跳轉到「活動紀錄」頁籤並開始拉資料！
                         switchTab('tab-records', document.querySelectorAll('.nav-item-r')[2]);
                         await processStravaActivities(data.access_token);
                     } else {
@@ -622,7 +712,6 @@
                     document.getElementById('loadingOverlay').style.display = 'none';
                 }
             } else {
-                // 一般載入頁面，檢查是否已經登入過
                 const savedToken = localStorage.getItem('strava_access_token');
                 if(savedToken) {
                     document.getElementById('device-status').innerHTML = '<i class="fa-brands fa-strava" style="color: #fc4c02;"></i> Strava 已授權就緒';
@@ -630,33 +719,21 @@
             }
         });
 
-        // 點擊「同步 Strava」按鈕觸發的函式
         async function handleStravaSync() {
-            // 再次檢查 file:// 避免錯誤
-            if (window.location.protocol === 'file:') {
-                alert("⚠️ 請透過 Live Server 開啟網頁才能使用 Strava 登入功能！");
-                return;
-            }
-
+            if (window.location.protocol === 'file:') { alert("⚠️ 請透過 Live Server 開啟網頁才能使用 Strava 登入功能！"); return; }
             const accessToken = localStorage.getItem('strava_access_token');
-            
-            // 如果從來沒授權過，或是 Token 被清掉，引導去登入
             if (!accessToken) {
-                const confirmAuth = confirm("準備連接您的 Strava 帳號！\n\n【重要設定】\n請先確認您已在 Strava API 設定頁面，將「Authorization Callback Domain」設為「localhost」，否則將會失敗。\n\n點擊「確定」後將跳轉至 Strava 官方授權頁面。");
+                const confirmAuth = confirm("準備連接您的 Strava 帳號！\n\n這將會跳轉至 Strava 官方授權頁面，請允許讀取「運動紀錄」權限。");
                 if (confirmAuth) {
-                    // 構建跳轉回來的網址 (就是目前的網址)
                     const currentUrl = window.location.href.split('?')[0];
                     const authUrl = `https://www.strava.com/oauth/authorize?client_id=${STRAVA_CLIENT_ID}&response_type=code&redirect_uri=${currentUrl}&approval_prompt=force&scope=read,activity:read_all`;
                     window.location.href = authUrl;
                 }
                 return;
             }
-
-            // 如果已經有 Token，直接去抓資料
             await processStravaActivities(accessToken);
         }
 
-        // 解析 Strava 地圖軌跡的特殊演算法
         const polylineDecoder = (function () {
             return function(str, precision) {
                 var index = 0, lat = 0, lng = 0, coordinates = [], shift = 0, result = 0, byte = null, latitude_change, longitude_change, factor = Math.pow(10, precision || 5);
@@ -673,7 +750,6 @@
             };
         })();
 
-        // 核心：用 Access Token 抓取資料並渲染畫面
         async function processStravaActivities(token) {
             document.getElementById('loadingText').innerText = "正在向 Strava 抓取資料...";
             document.getElementById('loadingSubtext').innerText = "分析最新運動紀錄中";
@@ -684,53 +760,33 @@
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
-                // 🚨 處理 401 錯誤：Token 過期了，用 Refresh Token 自動幫使用者換一把新的！ 🚨
                 if (response.status === 401) {
                     const refreshToken = localStorage.getItem('strava_refresh_token');
                     if(!refreshToken) throw new Error("Token 過期且無法刷新，請重新授權。");
-                    
                     document.getElementById('loadingText').innerText = "Token 已過期，正在自動展延...";
-                    
                     const refreshRes = await fetch('https://www.strava.com/oauth/token', {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            client_id: STRAVA_CLIENT_ID, client_secret: STRAVA_CLIENT_SECRET,
-                            grant_type: 'refresh_token', refresh_token: refreshToken
-                        })
+                        body: JSON.stringify({ client_id: STRAVA_CLIENT_ID, client_secret: STRAVA_CLIENT_SECRET, grant_type: 'refresh_token', refresh_token: refreshToken })
                     });
-                    
                     if(!refreshRes.ok) {
-                        // 如果 Refresh Token 也失效，清空儲存並要求重新登入
-                        localStorage.removeItem('strava_access_token');
-                        localStorage.removeItem('strava_refresh_token');
-                        alert("登入狀態已失效，請重新點擊同步按鈕進行授權。");
-                        document.getElementById('loadingOverlay').style.display = 'none';
-                        return;
+                        localStorage.removeItem('strava_access_token'); localStorage.removeItem('strava_refresh_token');
+                        alert("登入狀態已失效，請重新點擊同步按鈕。"); document.getElementById('loadingOverlay').style.display = 'none'; return;
                     }
-                    
                     const freshData = await refreshRes.json();
-                    localStorage.setItem('strava_access_token', freshData.access_token);
-                    localStorage.setItem('strava_refresh_token', freshData.refresh_token);
-                    
-                    // 拿著新的 Token 重新抓一次資料！
-                    response = await fetch('https://www.strava.com/api/v3/athlete/activities?per_page=5', {
-                        headers: { 'Authorization': `Bearer ${freshData.access_token}` }
-                    });
+                    localStorage.setItem('strava_access_token', freshData.access_token); localStorage.setItem('strava_refresh_token', freshData.refresh_token);
+                    response = await fetch('https://www.strava.com/api/v3/athlete/activities?per_page=5', { headers: { 'Authorization': `Bearer ${freshData.access_token}` } });
                 }
 
                 if (!response.ok) throw new Error(`API 請求失敗 (Status: ${response.status})`);
-
                 const activities = await response.json();
-                if(activities.length === 0) { alert("您目前在 Strava 上沒有任何活動紀錄。"); return; }
+                if(activities.length === 0) { alert("您目前在 Strava 上沒有任何紀錄。"); return; }
 
                 const recordsContainer = document.getElementById('records-container');
                 recordsContainer.innerHTML = ''; 
-                let latestRun = null; 
-
-                // 累加本次抓到的總跑量來解鎖成就
+                globalActivities = []; // 清空全球狀態庫
                 let batchRunDistance = 0;
 
-                activities.forEach(activity => {
+                activities.forEach((activity, index) => {
                     const distanceKm = (activity.distance / 1000).toFixed(2);
                     if(activity.type === 'Run') batchRunDistance += parseFloat(distanceKm);
 
@@ -748,46 +804,49 @@
                     if(activity.type === 'Ride') iconHtml = '<i class="fa-solid fa-person-biking text-info fs-5"></i>';
                     if(activity.type === 'Swim') iconHtml = '<i class="fa-solid fa-person-swimming text-primary fs-5"></i>';
 
-                    if(!latestRun && activity.type === 'Run' && activity.map && activity.map.summary_polyline) {
-                        latestRun = {
-                            title: activity.name, date: formattedDate, dist: distanceKm, time: formattedTime, pace: formattedPace,
-                            hr: activity.has_heartrate ? Math.round(activity.average_heartrate) : '--',
-                            polyline: activity.map.summary_polyline
-                        };
-                    }
+                    // 將每筆資料存入全域陣列，供點擊跳轉時取用
+                    globalActivities.push({
+                        title: activity.name,
+                        date: `${formattedDate} · Strava 匯入`,
+                        dist: distanceKm,
+                        time: formattedTime,
+                        pace: formattedPace,
+                        hr: activity.has_heartrate ? Math.round(activity.average_heartrate) : '--',
+                        type: activity.type,
+                        source: 'strava',
+                        polyline: activity.map && activity.map.summary_polyline ? activity.map.summary_polyline : null
+                    });
 
-                    const recordHtml = `<div class="record-list-item animate__animated animate__fadeInDown"><div class="d-flex align-items-center"><div class="rounded-circle bg-dark border border-secondary d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">${iconHtml}</div><div><h6 class="fw-bold mb-1">${activity.name}</h6><div class="text-muted small">${formattedDate} · Strava 匯入</div></div></div><div class="text-end"><div class="fw-bold fs-5 text-white">${distanceKm} KM</div><div class="text-muted small">${formattedTime} | ${formattedPace}/km</div></div></div>`;
+                    // 綁定 onclick 跳轉事件
+                    const recordHtml = `
+                        <div class="record-list-item animate__animated animate__fadeInDown" onclick="viewActivityDetails(${index})" title="點擊切換查看詳細資訊">
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-circle bg-dark border border-secondary d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
+                                    ${iconHtml}
+                                </div>
+                                <div>
+                                    <h6 class="fw-bold mb-1">${activity.name}</h6>
+                                    <div class="text-muted small">${formattedDate} · Strava 匯入</div>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-bold fs-5 text-white">${distanceKm} KM</div>
+                                <div class="text-muted small">${formattedTime} | ${formattedPace}/km</div>
+                            </div>
+                        </div>`;
                     recordsContainer.insertAdjacentHTML('beforeend', recordHtml);
                 });
 
-                if(latestRun) {
-                    document.getElementById('dash-run-title').innerHTML = `${latestRun.title} <span class="badge bg-danger ms-2 animate__animated animate__fadeIn"><i class="fa-brands fa-strava"></i> 同步完成</span>`;
-                    document.getElementById('dash-run-time').innerText = latestRun.date;
-                    
-                    const distEl = document.getElementById('dash-val-dist');
-                    distEl.innerText = latestRun.dist; distEl.classList.add('animate__animated', 'animate__flash');
-                    
-                    document.getElementById('dash-val-time').innerText = latestRun.time;
-                    document.getElementById('dash-val-pace').innerText = latestRun.pace;
-                    document.getElementById('dash-val-hr').innerText = latestRun.hr;
-
-                    map.removeLayer(polyline);
-                    const decodedPath = polylineDecoder(latestRun.polyline);
-                    polyline = L.polyline(decodedPath, { color: '#fc4c02', weight: 5, opacity: 0.9, lineJoin: 'round' }).addTo(map);
-                    map.fitBounds(polyline.getBounds(), { padding: [20, 20] });
-                }
-
                 document.getElementById('device-status').innerHTML = '<i class="fa-brands fa-strava" style="color: #fc4c02;"></i> Strava 已連線 (商逢育)';
                 
-                // 將抓到的跑量灌入圖表與成就系統
                 if(batchRunDistance > 0) {
-                    currentWeeklyMileage += batchRunDistance;
-                    data4Weeks.data[3] = currentWeeklyMileage;
-                    updateChartData();
-                    checkAchievements();
+                    currentWeeklyMileage += batchRunDistance; data4Weeks.data[3] = currentWeeklyMileage;
+                    updateChartData(); checkAchievements();
                 }
 
-                setTimeout(() => { document.getElementById('dash-val-dist').classList.remove('animate__animated', 'animate__flash'); }, 1000);
+                // 預設將首頁儀表板切換為最新的一筆資料
+                viewActivityDetails(0);
+                setTimeout(() => alert("✅ Strava 資料同步成功！\n\n您可以點擊任一筆紀錄跳轉至首頁查看地圖與心率等詳細資訊！"), 500);
 
             } catch (error) {
                 console.error("Strava 同步錯誤:", error);
