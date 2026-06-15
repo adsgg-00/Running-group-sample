@@ -784,11 +784,12 @@
                 const recordsContainer = document.getElementById('records-container');
                 recordsContainer.innerHTML = ''; 
                 globalActivities = []; // 清空全球狀態庫
-                let batchRunDistance = 0;
+                
+                // 為了更新圖表，重設 7 天數據並準備計算
+                data7Days.data = [0, 0, 0, 0, 0, 0, 0];
 
                 activities.forEach((activity, index) => {
                     const distanceKm = (activity.distance / 1000).toFixed(2);
-                    if(activity.type === 'Run') batchRunDistance += parseFloat(distanceKm);
 
                     const paceSecondsPerKm = activity.moving_time / (activity.distance / 1000);
                     const paceMins = Math.floor(paceSecondsPerKm / 60), paceSecs = Math.round(paceSecondsPerKm % 60);
@@ -799,6 +800,17 @@
 
                     const dateObj = new Date(activity.start_date_local);
                     const formattedDate = `${dateObj.getFullYear()}/${(dateObj.getMonth()+1).toString().padStart(2, '0')}/${dateObj.getDate().toString().padStart(2, '0')}`;
+
+                    // 如果是跑步活動，且在最近7天內，則更新圖表數據
+                    if (activity.type === 'Run') {
+                        const today = new Date();
+                        const timeDiff = today.getTime() - dateObj.getTime();
+                        const dayDiff = timeDiff / (1000 * 3600 * 24);
+                        if (dayDiff < 7 && dayDiff >= 0) {
+                            const chartIndex = (dateObj.getDay() === 0) ? 6 : dateObj.getDay() - 1;
+                            data7Days.data[chartIndex] += parseFloat(distanceKm);
+                        }
+                    }
 
                     let iconHtml = '<i class="fa-solid fa-person-running text-success fs-5"></i>';
                     if(activity.type === 'Ride') iconHtml = '<i class="fa-solid fa-person-biking text-info fs-5"></i>';
@@ -839,14 +851,16 @@
 
                 document.getElementById('device-status').innerHTML = '<i class="fa-brands fa-strava" style="color: #fc4c02;"></i> Strava 已連線 (商逢育)';
                 
-                if(batchRunDistance > 0) {
-                    currentWeeklyMileage += batchRunDistance; data4Weeks.data[3] = currentWeeklyMileage;
-                    updateChartData(); checkAchievements();
-                }
+                // 重新計算本週總跑量並更新所有相關圖表與成就
+                const totalThisWeekRunDistance = data7Days.data.reduce((sum, current) => sum + current, 0);
+                currentWeeklyMileage = totalThisWeekRunDistance;
+                data4Weeks.data[3] = currentWeeklyMileage; // 更新 4 週圖表的「本週」數據
+                updateChartData();
+                checkAchievements();
 
                 // 預設將首頁儀表板切換為最新的一筆資料
                 viewActivityDetails(0);
-                setTimeout(() => alert("✅ Strava 資料同步成功！\n\n您可以點擊任一筆紀錄跳轉至首頁查看地圖與心率等詳細資訊！"), 500);
+                setTimeout(() => alert("✅ Strava 資料同步成功！\n\n您的活動紀錄與訓練量統計圖表均已更新。"), 500);
 
             } catch (error) {
                 console.error("Strava 同步錯誤:", error);
