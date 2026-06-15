@@ -239,26 +239,6 @@
                     </div>
 
                     <form id="plan-request-form">
-                        <div class="ai-form-box mb-4" style="border-color: rgba(191, 90, 242, 0.3);">
-                            <div class="row g-4">
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold"><i class="fa-solid fa-microchip me-2" style="color: var(--r-purple);"></i>選擇運作引擎</label>
-                                    <select id="ai-mode" class="form-select" onchange="toggleModeUI()">
-                                        <option value="simulation" selected>大數據智慧模擬（免 API Key 演示版）</option>
-                                        <option value="real-gemini">真實 Google Gemini AI 連線</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6 d-none" id="api-key-container">
-                                    <label class="form-label fw-bold text-warning"><i class="fa-solid fa-key me-2"></i>輸入 Gemini API Key</label>
-                                    <div class="input-group">
-                                        <input type="password" id="api-key-input" class="form-control" placeholder="AIzaSy... 開頭金鑰">
-                                        <button class="btn btn-outline-secondary" style="border-color: rgba(255,255,255,0.1);" type="button" onclick="togglePasswordVisibility()"><i class="fa-solid fa-eye" id="eye-icon"></i></button>
-                                    </div>
-                                    <span class="text-muted small mt-1 d-block">💡 貼心提醒：金鑰加密存於本機，絕不外洩。</span>
-                                </div>
-                            </div>
-                        </div>
-
                         <div class="ai-form-box mb-4">
                             <div class="row g-4">
                                 <div class="col-md-6" id="goal-container">
@@ -619,66 +599,54 @@
         const daysOfWeek = [{ id: 'mon', name: '週一' }, { id: 'tue', name: '週二' }, { id: 'wed', name: '週三' }, { id: 'thu', name: '週四' }, { id: 'fri', name: '週五' }, { id: 'sat', name: '週六' }, { id: 'sun', name: '週日' }];
         daysOfWeek.forEach(day => { document.getElementById('training-days').innerHTML += `<div><input type="checkbox" class="day-checkbox" id="day-${day.id}" value="${day.id}"><label class="day-label" for="day-${day.id}">${day.name}</label></div>`; });
         ['tue', 'thu', 'sat', 'sun'].forEach(id => { if(document.getElementById(`day-${id}`)) document.getElementById(`day-${id}`).checked = true; });
-
-        function toggleModeUI() {
-            const mode = document.getElementById('ai-mode').value, keyContainer = document.getElementById('api-key-container'), goalContainer = document.getElementById('goal-container');
-            if (mode === 'real-gemini') { keyContainer.classList.remove('d-none'); goalContainer.className = 'col-md-6'; } else { keyContainer.classList.add('d-none'); goalContainer.className = 'col-md-12'; }
-        }
-        function togglePasswordVisibility() {
-            const keyInput = document.getElementById('api-key-input'), eyeIcon = document.getElementById('eye-icon');
-            if (keyInput.type === "password") { keyInput.type = "text"; eyeIcon.className = "fa-solid fa-eye-slash"; } else { keyInput.type = "password"; eyeIcon.className = "fa-solid fa-eye"; }
-        }
-
-        function triggerPlanGeneration() { document.getElementById('ai-mode').value === 'real-gemini' ? generateRealGeminiPlan() : generateSimulationPlan(); }
-
+        
         async function generateRealGeminiPlan() {
-            const rawKey = document.getElementById('api-key-input').value.trim();
-            const goalRace = document.getElementById('goal-race').options[document.getElementById('goal-race').selectedIndex].text;
-            const goalTime = document.getElementById('goal-time').value, selectedDays = Array.from(document.querySelectorAll('#training-days input:checked')).map(el => daysOfWeek.find(d => d.id === el.value).name);
+            const goalRaceEl = document.getElementById('goal-race');
+            const goalRace = goalRaceEl.options[goalRaceEl.selectedIndex].text;
+            const goalTime = document.getElementById('goal-time').value;
+            const checkedBoxes = Array.from(document.querySelectorAll('#training-days input:checked'));
+            const selectedDays = checkedBoxes.map(el => daysOfWeek.find(d => d.id === el.value).name);
 
-            if (!rawKey || !goalTime.trim() || selectedDays.length < 3) { alert('請確認金鑰、目標時間已填寫，且選擇至少 3 天訓練日！'); return; }
+            if (!goalTime.trim()) { alert('請輸入您的目標完賽時間！'); return; }
+            if (selectedDays.length < 3) { alert('請至少選擇 3 個訓練日！'); return; }
 
-            localStorage.setItem('gemini_api_key', rawKey);
-            document.getElementById('loadingText').innerText = "Gemini AI 正在連線..."; document.getElementById('loadingOverlay').style.display = 'flex';
-
-            const prompt = `你是一位專業教練。幫一位跑者量身打造「2 週」訓練計畫。目標賽事: ${goalRace}, 期望: ${goalTime}, 訓練日: ${selectedDays.join(', ')}。其餘為休息。請回傳 JSON 陣列，不含 markdown：
-[ { "week": 1, "totalKm": 35, "workouts": [ { "day": "週一", "type": "休息", "details": "恢復日", "icon": "fa-bed", "iconBg": "rgba(142, 142, 147, 0.2)" }, { "day": "週二", "type": "輕鬆跑", "details": "40分鐘", "icon": "fa-person-running", "iconBg": "rgba(50, 215, 75, 0.2)" }, { "day": "週日", "type": "長距離", "details": "LSD 12K", "icon": "fa-route", "iconBg": "rgba(255, 159, 10, 0.2)" } ] } ] 一週需滿七天。`;
+            // 更新載入動畫文字
+            document.getElementById('loadingText').innerText = "R-Backend 正在調度 Gemini AI 大腦...";
+            document.getElementById('loadingSubtext').innerText = "後端安全安全管線連線中，請稍候...";
+            document.getElementById('loadingOverlay').style.display = 'flex';
 
             try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${rawKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
-                if (!response.ok) throw new Error("API 金鑰異常");
-                const data = await response.json();
-                let responseText = data.candidates[0].content.parts[0].text.trim();
-                const jsonStart = responseText.indexOf('['), jsonEnd = responseText.lastIndexOf(']');
-                if (jsonStart !== -1 && jsonEnd !== -1) responseText = responseText.substring(jsonStart, jsonEnd + 1);
-                renderPlanHTML(JSON.parse(responseText.trim()), `Gemini AI 客製 - ${goalRace}計畫`, `目標需求: ${goalTime}`);
-            } catch (error) { alert("錯誤：" + error.message); } finally { document.getElementById('loadingOverlay').style.display = 'none'; }
+                // 🚨 關鍵：改向你的本機 Python Flask 伺服器要資料，並把參數打包成 JSON 送過去 🚨
+                const response = await fetch('http://127.0.0.1:5000/api/generate-plan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        goalRace: goalRace,
+                        goalTime: goalTime,
+                        selectedDays: selectedDays
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error("後端 Python 伺服器回傳異常，請確認 Python 端金鑰是否填寫正確。");
+                }
+
+                const plan = await response.json();
+                
+                // 渲染畫出課表
+                renderPlanHTML(plan, `Gemini AI 雲端客製 - ${goalRace}計畫`, `目標需求: ${goalTime}`);
+
+            } catch (error) {
+                console.error("全端 AI 連線失敗:", error);
+                alert("錯誤：" + error.message + "\n\n請確認你的 Python app.py 伺服器是否有正常啟動(Port 5000)！");
+            } finally {
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }
         }
 
-        function generateSimulationPlan() {
-            const goalRace = document.getElementById('goal-race').options[document.getElementById('goal-race').selectedIndex].text, goalTime = document.getElementById('goal-time').value;
-            const checkedBoxes = Array.from(document.querySelectorAll('#training-days input:checked')).map(el => el.value);
-            if (!goalTime.trim() || checkedBoxes.length < 3) { alert('請填寫完整資訊！'); return; }
-            
-            document.getElementById('loadingText').innerText = "大數據分析中..."; document.getElementById('loadingOverlay').style.display = 'flex';
-            setTimeout(() => {
-                const config = { baseKm: 20 }, mockPlan = [];
-                [1, 2].forEach(w => {
-                    const weekData = { week: w, totalKm: config.baseKm + w * 4, workouts: [] };
-                    daysOfWeek.forEach(day => {
-                        let type = '休息', details = '身體恢復日', icon = 'fa-bed', bg = 'rgba(142, 142, 147, 0.2)';
-                        if (checkedBoxes.includes(day.id)) {
-                            if (day.id === 'sun') { type = '長距離'; details = `LSD長距離耐力跑 ${Math.round(config.baseKm * 0.35 + w)} 公里`; icon = 'fa-route'; bg = 'rgba(255, 159, 10, 0.2)'; } 
-                            else if (day.id === 'wed' || day.id === 'thu') { type = '間歇跑'; details = `最大心率衝刺 800m x ${4 + w} 趟`; icon = 'fa-stopwatch'; bg = 'rgba(191, 90, 242, 0.2)'; } 
-                            else { type = '輕鬆跑'; details = `有氧輕鬆跑 ${35 + w * 5} 分鐘`; icon = 'fa-person-running'; bg = 'rgba(50, 215, 75, 0.2)'; }
-                        }
-                        weekData.workouts.push({ day: day.name, type: type, details: details, icon: icon, iconBg: bg });
-                    });
-                    mockPlan.push(weekData);
-                });
-                renderPlanHTML(mockPlan, `大數據精準訂製 - ${goalRace}計畫`, `目標: ${goalTime}`);
-                document.getElementById('loadingOverlay').style.display = 'none';
-            }, 2500);
+        // 修改 triggerPlanGeneration，移除模式判斷，點擊一律走真實 Flask-Gemini 連線
+        function triggerPlanGeneration() {
+            generateRealGeminiPlan();
         }
 
         function renderPlanHTML(plan, title, subtitle) {
