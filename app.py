@@ -1,6 +1,6 @@
 import os
-from flask import Flask, jsonify, request
 from flask_cors import CORS
+from flask import Flask, jsonify, request, g
 from dotenv import load_dotenv
 import requests
 import sqlite3
@@ -13,11 +13,26 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 app = Flask(__name__)
 CORS(app)  # 解除跨網域 CORS 限制
 
+DATABASE = 'running.db'
+
 # ==========================================
 # 🚨 資料庫初始化 (建立 SQLite 檔案與資料表)
 # ==========================================
+def get_db():
+    db = getattr(g, '_database', None)
+    if db is None:
+        db = g._database = sqlite3.connect(DATABASE)
+        db.row_factory = sqlite3.Row
+    return db
+
+@app.teardown_appcontext
+def close_connection(exception):
+    db = getattr(g, '_database', None)
+    if db is not None:
+        db.close()
+
 def init_db():
-    conn = sqlite3.connect('running.db')
+    conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS activities (
@@ -46,19 +61,16 @@ def get_test_data():
 # 2. 讀取所有資料庫裡的活動紀錄
 @app.route("/api/activities", methods=["GET"])
 def get_activities():
-    conn = sqlite3.connect('running.db')
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
+    cursor = get_db().cursor()
     cursor.execute('SELECT * FROM activities ORDER BY id DESC')
     rows = cursor.fetchall()
-    conn.close()
     return jsonify([dict(row) for row in rows]), 200
 
 # 3. 將新的活動紀錄存進資料庫
 @app.route("/api/activities", methods=["POST"])
 def save_activity():
     data = request.get_json()
-    conn = sqlite3.connect('running.db')
+    conn = get_db()
     cursor = conn.cursor()
     cursor.execute('''
         INSERT INTO activities (title, date, dist, time, pace, hr, type, source, polyline)
@@ -69,7 +81,6 @@ def save_activity():
         data.get('type'), data.get('source'), data.get('polyline')
     ))
     conn.commit()
-    conn.close()
     return jsonify({"status": "success", "message": "活動已成功存入資料庫！"}), 201
 
 # 4. Gemini AI 課表生成中轉站
