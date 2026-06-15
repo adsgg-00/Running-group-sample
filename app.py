@@ -2,6 +2,7 @@ import os
 from flask_cors import CORS
 from flask import Flask, jsonify, request, g
 from dotenv import load_dotenv
+import google.generativeai as genai
 import requests
 import sqlite3
 import traceback
@@ -9,6 +10,8 @@ import traceback
 # 🚨 載入 .env
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+# 在最上方已經載入 GEMINI_API_KEY 了，這裡要設定給套件
+genai.configure(api_key=GEMINI_API_KEY)
 STRAVA_CLIENT_ID = os.getenv("STRAVA_CLIENT_ID")
 STRAVA_CLIENT_SECRET = os.getenv("STRAVA_CLIENT_SECRET")
 
@@ -95,10 +98,10 @@ def save_activity():
 # 4. Gemini AI 課表生成中轉站
 @app.route("/api/generate-plan", methods=["POST"])
 def generate_plan():
-    # 🚨 新增偵錯代碼，它會把金鑰的開頭印出來給你看
     print(f"正在使用的金鑰開頭: {GEMINI_API_KEY[:6]}...")
 
     try:
+        # 1. 取得前端傳來的資料
         req_data = request.get_json()
         goal_race = req_data.get("goalRace")
         goal_time = req_data.get("goalTime")
@@ -122,20 +125,13 @@ def generate_plan():
           }}
         ]
         注意：一週七天都要有，陣列裡要有 2 週。icon與iconBg請依照上面範例的顏色配對。"""
-        # ✅ 正確的網址
-        gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
-
-        response = requests.post(
-            gemini_url,
-            json={"contents": [{"parts": [{"text": prompt}]}]},
-            headers={"Content-Type": "application/json"},
-        )
-
-        if response.status_code != 200:
-            return jsonify({"error": f"Google API 錯誤: {response.text}"}), 400
-
-        res_json = response.json()
-        raw_text = res_json["candidates"][0]["content"]["parts"][0]["text"].strip()
+        
+        # 2. 呼叫 Gemini AI (改用 SDK)
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        response = model.generate_content(prompt)
+        
+        # 3. 處理回應並回傳給前端
+        raw_text = response.text.strip()
 
         json_start = raw_text.find("[")
         json_end = raw_text.rfind("]")
@@ -145,8 +141,10 @@ def generate_plan():
         return raw_text, 200, {"Content-Type": "application/json"}
 
     except Exception as e:
+        # 如果有錯誤，把錯誤訊息回傳給前端
+        print("Gemini API 發生錯誤:", e)
         traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 # 5. Strava OAuth - Step 1: Redirect to Strava's auth page
 @app.route("/api/strava/auth")
