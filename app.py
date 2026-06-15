@@ -6,9 +6,16 @@ import requests
 import sqlite3
 import traceback
 
-# 🚨 載入 .env 檔案中的環境變數
+# 🚨 載入 .env
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+# 🔍 加上這兩行來抓蟲
+print(f"DEBUG: 系統讀到的金鑰是 -> {GEMINI_API_KEY}")
+if not GEMINI_API_KEY:
+    print("❌ 警告：沒讀到金鑰！請檢查 .env 檔案是否在 app.py 同一層目錄")
+else:
+    print(f"✅ 金鑰長度: {len(GEMINI_API_KEY)}")
 
 app = Flask(__name__)
 CORS(app)  # 解除跨網域 CORS 限制
