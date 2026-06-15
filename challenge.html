@@ -459,6 +459,33 @@
         const data7Days = { labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], data: [7.0, 0, 0, 0, 5.0, 0, 17.73] };
         const data4Weeks = { labels: ['Week 1', 'Week 2', 'Week 3', 'This Week'], data: [35.2, 42.0, 28.5, 29.73] };
         let performanceChart = new Chart(ctx, { type: 'bar', data: { labels: data7Days.labels, datasets: [{ label: '距離 (KM)', data: data7Days.data, backgroundColor: '#bf5af2', borderRadius: 6, barPercentage: 0.5 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#8e8e93' } }, x: { grid: { display: false }, ticks: { color: '#8e8e93' } } } } });
+        
+        // ==========================================
+        // 🚨 測試：讓前端網頁動態向 Python Flask 後端要資料 🚨
+        // ==========================================
+        async function testBackendConnection() {
+            try {
+                // 利用 fetch 發送異步請求到你的 Python 伺服器路由
+                const response = await fetch('http://127.0.0.1:5000/api/test-data');
+                if (!response.ok) throw new Error("後端伺服器沒有回應");
+                
+                const data = await response.json();
+                
+                // 成功連線！將來自 Python 的訊息動態印在網頁最上方的標題
+                console.log("✅ 成功對接 Flask 後端:", data);
+                document.getElementById('dash-run-title').innerHTML = 
+                    `${data.message} &lt;span class="badge bg-primary animate__animated animate__pulse animate__infinite"&gt;Flask 連線成功&lt;/span&gt;`;
+                    
+            } catch (error) {
+                console.error("❌ 無法連線至 Flask 後端:", error);
+            }
+        }
+
+        // 讓網頁載入時，自動執行一次連線測試
+        window.addEventListener('load', () => {
+            // 延遲 1 秒執行，確保網頁元件都載入完畢
+            setTimeout(testBackendConnection, 1000);
+        });
         function updateChartData() {
             const range = document.getElementById('chartTimeRange').value;
             performanceChart.data.labels = range === '7days' ? data7Days.labels : data4Weeks.labels;
