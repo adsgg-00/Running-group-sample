@@ -9,6 +9,8 @@ import traceback
 # 🚨 載入 .env
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+STRAVA_CLIENT_ID = os.getenv("STRAVA_CLIENT_ID")
+STRAVA_CLIENT_SECRET = os.getenv("STRAVA_CLIENT_SECRET")
 
 # 🔍 加上這兩行來抓蟲
 print(f"DEBUG: 系統讀到的金鑰是 -> {GEMINI_API_KEY}")
@@ -145,6 +147,33 @@ def generate_plan():
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+
+# 5. Strava OAuth - Step 1: Redirect to Strava's auth page
+@app.route("/api/strava/auth")
+def strava_auth():
+    strava_auth_url = (
+        f"https://www.strava.com/oauth/authorize?"
+        f"client_id={STRAVA_CLIENT_ID}"
+        "&response_type=code"
+        "&redirect_uri=http://127.0.0.1:5500/challenge.html" # Strava 授權後跳轉回來的地址
+        "&approval_prompt=force"
+        "&scope=read,activity:read_all"
+    )
+    return jsonify({"auth_url": strava_auth_url})
+
+# 6. Strava OAuth - Step 2: Exchange code for token
+@app.route("/api/strava/callback", methods=["POST"])
+def strava_callback():
+    code = request.json.get("code")
+    token_url = "https://www.strava.com/oauth/token"
+    payload = {
+        "client_id": STRAVA_CLIENT_ID,
+        "client_secret": STRAVA_CLIENT_SECRET,
+        "code": code,
+        "grant_type": "authorization_code"
+    }
+    response = requests.post(token_url, data=payload)
+    return jsonify(response.json()), response.status_code
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
