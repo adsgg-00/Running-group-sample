@@ -3,6 +3,7 @@ from flask import Flask, jsonify, request, g
 from flask_cors import CORS
 from dotenv import load_dotenv
 import sqlite3
+import requests
 import traceback
 
 # 🚨 引入 Google 最新版的 GenAI 套件
@@ -11,6 +12,8 @@ from google import genai
 # 載入 .env
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+STRAVA_CLIENT_ID = os.getenv("STRAVA_CLIENT_ID")           # 👈 新增
+STRAVA_CLIENT_SECRET = os.getenv("STRAVA_CLIENT_SECRET")
 
 print(f"DEBUG: 系統讀到的金鑰是 -> {GEMINI_API_KEY}")
 
@@ -131,5 +134,45 @@ def generate_plan():
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
+# ==========================================
+# 🚨 Strava API 授權與同步中轉站
+# ==========================================
+
+# 1. 取得 Strava 登入網址
+@app.route('/api/strava/auth', methods=['GET'])
+def strava_auth():
+    # 這裡的 redirect_uri 必須與你在 Strava 後台設定的 Callback Domain 完全一致
+    # 假設你是用 Live Server 開啟 challenge.html，Port 通常是 5500
+    redirect_uri = "http://127.0.0.1:5500/challenge.html"
+    auth_url = f"https://www.strava.com/oauth/mobile/authorize?client_id={STRAVA_CLIENT_ID}&response_type=code&redirect_uri={redirect_uri}&approval_prompt=force&scope=activity:read_all"
+    return jsonify({"auth_url": auth_url})
+
+# 2. 拿驗證碼 (Code) 去換取真正的通行證 (Token)
+@app.route('/api/strava/callback', methods=['POST'])
+def strava_callback():
+    data = request.get_json()
+    code = data.get('code')
+    
+    res = requests.post("https://www.strava.com/oauth/token", data={
+        'client_id': STRAVA_CLIENT_ID,
+        'client_secret': STRAVA_CLIENT_SECRET,
+        'code': code,
+        'grant_type': 'authorization_code'
+    })
+    return jsonify(res.json()), res.status_code
+
+# 3. 當通行證過期時，用 Refresh Token 換新的
+@app.route('/api/strava/refresh', methods=['POST'])
+def strava_refresh():
+    data = request.get_json()
+    refresh_token = data.get('refresh_token')
+    
+    res = requests.post("https://www.strava.com/oauth/token", data={
+        'client_id': STRAVA_CLIENT_ID,
+        'client_secret': STRAVA_CLIENT_SECRET,
+        'grant_type': 'refresh_token',
+        'refresh_token': refresh_token
+    })
+    return jsonify(res.json()), res.status_code
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
