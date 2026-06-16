@@ -235,7 +235,7 @@
                     <div class="text-center mb-5">
                         <i class="fa-solid fa-wand-magic-sparkles fa-3x mb-3" style="color: var(--r-purple);"></i>
                         <h2 class="fw-bold">AI 智慧訓練計畫生成器</h2>
-                        <p class="text-muted">串接 Google Gemini 大型語言模型，結合個人目標，打造頂級馬拉松教練課表。</p>
+                        <p class="text-muted">採用 GROQ 超高速推論引擎，結合個人目標，即時生成頂級馬拉松教練課表。</p>
                     </div>
 
                     <form id="plan-request-form">
@@ -594,13 +594,13 @@
         }
 
         // ==========================================
-        // 5. Gemini AI 生成器
+        // 5. GROQ AI 計畫生成器 (原 Gemini)
         // ==========================================
         const daysOfWeek = [{ id: 'mon', name: '週一' }, { id: 'tue', name: '週二' }, { id: 'wed', name: '週三' }, { id: 'thu', name: '週四' }, { id: 'fri', name: '週五' }, { id: 'sat', name: '週六' }, { id: 'sun', name: '週日' }];
         daysOfWeek.forEach(day => { document.getElementById('training-days').innerHTML += `<div><input type="checkbox" class="day-checkbox" id="day-${day.id}" value="${day.id}"><label class="day-label" for="day-${day.id}">${day.name}</label></div>`; });
         ['tue', 'thu', 'sat', 'sun'].forEach(id => { if(document.getElementById(`day-${id}`)) document.getElementById(`day-${id}`).checked = true; });
         
-        async function generateRealGeminiPlan() {
+        async function generateGroqPlan() {
             const goalRaceEl = document.getElementById('goal-race');
             const goalRace = goalRaceEl.options[goalRaceEl.selectedIndex].text;
             const goalTime = document.getElementById('goal-time').value;
@@ -611,12 +611,18 @@
             if (selectedDays.length < 3) { alert('請至少選擇 3 個訓練日！'); return; }
 
             // 更新載入動畫文字
-            document.getElementById('loadingText').innerText = "R-Backend 正在調度 Gemini AI 大腦...";
-            document.getElementById('loadingSubtext').innerText = "後端安全安全管線連線中，請稍候...";
+            document.getElementById('loadingText').innerText = "R-Backend 正在呼叫 GROQ 高速引擎...";
+            document.getElementById('loadingSubtext').innerText = "即時生成個人化課表中，請稍候...";
             document.getElementById('loadingOverlay').style.display = 'flex';
 
             try {
-                // 🚨 關鍵：改向你的本機 Python Flask 伺服器要資料，並把參數打包成 JSON 送過去 🚨
+                // 🚨 關鍵：向你的本機 Python Flask 伺服器發送請求。
+                // 後端 app.py 需修改 prompt 以符合 GROQ (Llama 3) 的格式。
+                // 範例：
+                // messages = [
+                //   { "role": "system", "content": "你是一位世界級的馬拉松教練..." },
+                //   { "role": "user", "content": `我的目標是${goalRace}，希望${goalTime}完成...` }
+                // ]
                 const response = await fetch('http://127.0.0.1:5000/api/generate-plan', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -634,7 +640,7 @@
                 const plan = await response.json();
                 
                 // 渲染畫出課表
-                renderPlanHTML(plan, `Gemini AI 雲端客製 - ${goalRace}計畫`, `目標需求: ${goalTime}`);
+                renderPlanHTML(plan, `GROQ 雲端客製 - ${goalRace}計畫`, `目標需求: ${goalTime}`);
 
             } catch (error) {
                 console.error("全端 AI 連線失敗:", error);
@@ -644,9 +650,9 @@
             }
         }
 
-        // 修改 triggerPlanGeneration，移除模式判斷，點擊一律走真實 Flask-Gemini 連線
+        // 修改 triggerPlanGeneration，點擊一律走真實 Flask-GROQ 連線
         function triggerPlanGeneration() {
-            generateRealGeminiPlan();
+            generateGroqPlan();
         }
 
         function renderPlanHTML(plan, title, subtitle) {
