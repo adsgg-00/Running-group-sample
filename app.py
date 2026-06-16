@@ -113,7 +113,7 @@ def generate_plan():
         # 🚨 使用最新的 google-genai 客戶端呼叫，完美支援 AQ. 金鑰
         client = genai.Client(api_key=GEMINI_API_KEY)
         response = client.models.generate_content(
-            model='models/gemini-2.5-flash',
+            model='models/gemini-2.0-flash',
             contents=prompt,
         )
 
