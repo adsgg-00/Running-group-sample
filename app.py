@@ -1,25 +1,23 @@
 import os
-from flask_cors import CORS
 from flask import Flask, jsonify, request, g
+from flask_cors import CORS
 from dotenv import load_dotenv
 import requests
 import sqlite3
 import traceback
-import google.generativeai as genai  # 👈 新增這行：引入 Gemini 套件
+
 # 🚨 載入 .env
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-# 在最上方已經載入 GEMINI_API_KEY 了，這裡要設定給套件
-genai.configure(api_key=GEMINI_API_KEY)
 STRAVA_CLIENT_ID = os.getenv("STRAVA_CLIENT_ID")
 STRAVA_CLIENT_SECRET = os.getenv("STRAVA_CLIENT_SECRET")
 
-# 🔍 加上這兩行來抓蟲
+# 🔍 偵錯確認
 print(f"DEBUG: 系統讀到的金鑰是 -> {GEMINI_API_KEY}")
-if not GEMINI_API_KEY:
-    print("❌ 警告：沒讀到金鑰！請檢查 .env 檔案是否在 app.py 同一層目錄")
+if not GEMINI_API_KEY or not GEMINI_API_KEY.startswith("AIzaSy"):
+    print("❌ 警告：金鑰錯誤！請確認 .env 內使用的是 AIzaSy 開頭的 API Key！")
 else:
-    print(f"✅ 金鑰長度: {len(GEMINI_API_KEY)}")
+    print(f"✅ 金鑰格式正確，長度: {len(GEMINI_API_KEY)}")
 
 app = Flask(__name__)
 CORS(app)  # 解除跨網域 CORS 限制
@@ -27,7 +25,7 @@ CORS(app)  # 解除跨網域 CORS 限制
 DATABASE = 'running.db'
 
 # ==========================================
-# 🚨 資料庫初始化 (建立 SQLite 檔案與資料表)
+# 🚨 資料庫初始化
 # ==========================================
 def get_db():
     db = getattr(g, '_database', None)
@@ -43,33 +41,28 @@ def close_connection(exception):
         db.close()
 
 def init_db():
-    conn = sqlite3.connect(DATABASE)
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS activities (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT, date TEXT, dist TEXT, time TEXT,
-            pace TEXT, hr TEXT, type TEXT, source TEXT, polyline TEXT
-        )
-    ''')
-    conn.commit()
-    conn.close()
+    with app.app_context():
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS activities (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT, date TEXT, dist TEXT, time TEXT,
+                pace TEXT, hr TEXT, type TEXT, source TEXT, polyline TEXT
+            )
+        ''')
+        conn.commit()
 
-init_db() # 啟動時執行
+init_db()
 
 # ==========================================
 # 🚨 API 路由設定
 # ==========================================
 
-# 1. 測試前端與後端連線的路由 (讓前端藍色標籤亮起來)
 @app.route('/api/test-data', methods=['GET'])
 def get_test_data():
-    return jsonify({
-        "message": "這是一筆來自 Python Flask 後端安全傳遞的測試數據！",
-        "system_status": "OK"
-    })
+    return jsonify({"message": "這是一筆來自 Python Flask 後端安全傳遞的測試數據！", "system_status": "OK"})
 
-# 2. 讀取所有資料庫裡的活動紀錄
 @app.route("/api/activities", methods=["GET"])
 def get_activities():
     cursor = get_db().cursor()
@@ -77,7 +70,6 @@ def get_activities():
     rows = cursor.fetchall()
     return jsonify([dict(row) for row in rows]), 200
 
-# 3. 將新的活動紀錄存進資料庫
 @app.route("/api/activities", methods=["POST"])
 def save_activity():
     data = request.get_json()
@@ -94,13 +86,10 @@ def save_activity():
     conn.commit()
     return jsonify({"status": "success", "message": "活動已成功存入資料庫！"}), 201
 
-# 4. Gemini AI 課表生成中轉站
+# 🚨 Gemini AI 課表生成中轉站 (改用穩定的 requests 寫法)
 @app.route("/api/generate-plan", methods=["POST"])
 def generate_plan():
-    print(f"正在使用的金鑰開頭: {GEMINI_API_KEY[:6]}...")
-
     try:
-        # 1. 取得前端傳來的資料
         req_data = request.get_json()
         goal_race = req_data.get("goalRace")
         goal_time = req_data.get("goalTime")
@@ -124,13 +113,20 @@ def generate_plan():
           }}
         ]
         注意：一週七天都要有，陣列裡要有 2 週。icon與iconBg請依照上面範例的顏色配對。"""
+
+        gemini_url = f"[https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=](https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=){GEMINI_API_KEY}"
         
-        # 2. 呼叫 Gemini AI (改用 SDK)
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        response = model.generate_content(prompt)
-        
-        # 3. 處理回應並回傳給前端
-        raw_text = response.text.strip()
+        response = requests.post(
+            gemini_url,
+            json={"contents": [{"parts": [{"text": prompt}]}]},
+            headers={"Content-Type": "application/json"},
+        )
+
+        if response.status_code != 200:
+            return jsonify({"error": f"Google API 錯誤: {response.text}"}), 400
+
+        res_json = response.json()
+        raw_text = res_json["candidates"][0]["content"]["parts"][0]["text"].strip()
 
         json_start = raw_text.find("[")
         json_end = raw_text.rfind("]")
@@ -140,51 +136,8 @@ def generate_plan():
         return raw_text, 200, {"Content-Type": "application/json"}
 
     except Exception as e:
-        # 如果有錯誤，把錯誤訊息回傳給前端
-        print("Gemini API 發生錯誤:", e)
         traceback.print_exc()
-        return jsonify({"status": "error", "message": str(e)}), 500
-
-# 5. Strava OAuth - Step 1: Redirect to Strava's auth page
-@app.route("/api/strava/auth")
-def strava_auth():
-    strava_auth_url = (
-        f"https://www.strava.com/oauth/authorize?"
-        f"client_id={STRAVA_CLIENT_ID}"
-        "&response_type=code"
-        "&redirect_uri=http://127.0.0.1:5500/challenge.html" # Strava 授權後跳轉回來的地址
-        "&approval_prompt=force"
-        "&scope=read,activity:read_all"
-    )
-    return jsonify({"auth_url": strava_auth_url})
-
-# 6. Strava OAuth - Step 2: Exchange code for token
-@app.route("/api/strava/callback", methods=["POST"])
-def strava_callback():
-    code = request.json.get("code")
-    token_url = "https://www.strava.com/oauth/token"
-    payload = {
-        "client_id": STRAVA_CLIENT_ID,
-        "client_secret": STRAVA_CLIENT_SECRET,
-        "code": code,
-        "grant_type": "authorization_code"
-    }
-    response = requests.post(token_url, data=payload)
-    return jsonify(response.json()), response.status_code
-
-# 7. Strava OAuth - Step 3: Securely refresh the access token
-@app.route("/api/strava/refresh", methods=["POST"])
-def strava_refresh():
-    refresh_token = request.json.get("refresh_token")
-    token_url = "https://www.strava.com/oauth/token"
-    payload = {
-        "client_id": STRAVA_CLIENT_ID,
-        "client_secret": STRAVA_CLIENT_SECRET,
-        "grant_type": "refresh_token",
-        "refresh_token": refresh_token
-    }
-    response = requests.post(token_url, data=payload)
-    return jsonify(response.json()), response.status_code
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
