@@ -7,15 +7,15 @@ import requests
 import traceback
 
 # 🚨 引入 Google 最新版的 GenAI 套件
-from google import genai
+from groq import Groq
 
 # 載入 .env
 load_dotenv()
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-STRAVA_CLIENT_ID = os.getenv("STRAVA_CLIENT_ID")           # 👈 新增
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")                   # 👈 改讀 GROQ_API_KEY
+STRAVA_CLIENT_ID = os.getenv("STRAVA_CLIENT_ID")           
 STRAVA_CLIENT_SECRET = os.getenv("STRAVA_CLIENT_SECRET")
 
-print(f"DEBUG: 系統讀到的金鑰是 -> {GEMINI_API_KEY}")
+print(f"DEBUG: 系統讀到的 Groq 金鑰是 -> {GROQ_API_KEY}")
 
 app = Flask(__name__)
 CORS(app)  # 解除跨網域 CORS 限制
@@ -113,16 +113,19 @@ def generate_plan():
         ]
         注意：一週七天都要有，陣列裡要有 2 週。icon與iconBg請依照上面範例的顏色配對。"""
 
-        # 🚨 使用最新的 google-genai 客戶端呼叫，完美支援 AQ. 金鑰
-        client = genai.Client(api_key=GEMINI_API_KEY)
-        response = client.models.generate_content(
-            model='models/gemini-2.0-flash',
-            contents=prompt,
+# 🚨 使用 Groq 客戶端呼叫 Llama 3 模型
+        client = Groq(api_key=GROQ_API_KEY)
+        completion = client.chat.completions.create(
+            model="llama3-8b-8192",  # 使用 Llama 3 8B 模型，速度極快
+            messages=[
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.2, # 降低隨機性，確保輸出的 JSON 格式穩定
         )
 
-        raw_text = response.text.strip()
+        raw_text = completion.choices[0].message.content.strip()
 
-        # 擷取 JSON
+        # 擷取 JSON (保留原本的完美邏輯)
         json_start = raw_text.find("[")
         json_end = raw_text.rfind("]")
         if json_start != -1 and json_end != -1:
