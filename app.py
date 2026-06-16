@@ -116,7 +116,7 @@ def generate_plan():
 # 🚨 使用 Groq 客戶端呼叫 Llama 3 模型
         client = Groq(api_key=GROQ_API_KEY)
         completion = client.chat.completions.create(
-            model="llama3-8b-8192",  # 使用 Llama 3 8B 模型，速度極快
+            model="llama-3.1-8b-instant",  # 使用 Llama 3 8B 模型，速度極快
             messages=[
                 {"role": "user", "content": prompt}
             ],
