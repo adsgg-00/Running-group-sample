@@ -2,22 +2,17 @@ import os
 from flask import Flask, jsonify, request, g
 from flask_cors import CORS
 from dotenv import load_dotenv
-import requests
 import sqlite3
 import traceback
 
-# 🚨 載入 .env
+# 🚨 引入 Google 最新版的 GenAI 套件
+from google import genai
+
+# 載入 .env
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-STRAVA_CLIENT_ID = os.getenv("STRAVA_CLIENT_ID")
-STRAVA_CLIENT_SECRET = os.getenv("STRAVA_CLIENT_SECRET")
 
-# 🔍 偵錯確認
 print(f"DEBUG: 系統讀到的金鑰是 -> {GEMINI_API_KEY}")
-if not GEMINI_API_KEY or not GEMINI_API_KEY.startswith("AIzaSy"):
-    print("❌ 警告：金鑰錯誤！請確認 .env 內使用的是 AIzaSy 開頭的 API Key！")
-else:
-    print(f"✅ 金鑰格式正確，長度: {len(GEMINI_API_KEY)}")
 
 app = Flask(__name__)
 CORS(app)  # 解除跨網域 CORS 限制
@@ -58,7 +53,6 @@ init_db()
 # ==========================================
 # 🚨 API 路由設定
 # ==========================================
-
 @app.route('/api/test-data', methods=['GET'])
 def get_test_data():
     return jsonify({"message": "這是一筆來自 Python Flask 後端安全傳遞的測試數據！", "system_status": "OK"})
@@ -86,7 +80,9 @@ def save_activity():
     conn.commit()
     return jsonify({"status": "success", "message": "活動已成功存入資料庫！"}), 201
 
-# 🚨 Gemini AI 課表生成中轉站 (改用穩定的 requests 寫法)
+# ==========================================
+# 🚨 Gemini AI 課表生成中轉站 (升級使用最新版 google-genai)
+# ==========================================
 @app.route("/api/generate-plan", methods=["POST"])
 def generate_plan():
     try:
@@ -114,20 +110,16 @@ def generate_plan():
         ]
         注意：一週七天都要有，陣列裡要有 2 週。icon與iconBg請依照上面範例的顏色配對。"""
 
-        gemini_url = f"[https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=](https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=){GEMINI_API_KEY}"
-        
-        response = requests.post(
-            gemini_url,
-            json={"contents": [{"parts": [{"text": prompt}]}]},
-            headers={"Content-Type": "application/json"},
+        # 🚨 使用最新的 google-genai 客戶端呼叫，完美支援 AQ. 金鑰
+        client = genai.Client(api_key=GEMINI_API_KEY)
+        response = client.models.generate_content(
+            model='gemini-1.5-flash',
+            contents=prompt,
         )
 
-        if response.status_code != 200:
-            return jsonify({"error": f"Google API 錯誤: {response.text}"}), 400
+        raw_text = response.text.strip()
 
-        res_json = response.json()
-        raw_text = res_json["candidates"][0]["content"]["parts"][0]["text"].strip()
-
+        # 擷取 JSON
         json_start = raw_text.find("[")
         json_end = raw_text.rfind("]")
         if json_start != -1 and json_end != -1:
