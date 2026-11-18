@@ -116,6 +116,14 @@
         .verdict-easy { background: var(--r-orange); }
         .verdict-rest { background: #ff453a; color: #fff; }
         @media (max-width: 576px) { .scale-end { display: none; } .readiness-grid { gap: 10px; } .metric-value { font-size: 1.3rem; } }
+
+        /* 活動分析 */
+        .extra-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
+        .extra-stats .metric-value { font-size: 1.3rem; }
+        .chart-title { font-weight: 700; font-size: 0.9rem; margin-bottom: 8px; }
+        .stream-box { position: relative; height: 200px; }
+        .zone-bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: rgba(255,255,255,0.08); }
+        .zone-bar span { display: block; height: 100%; }
     </style>
 </head>
 <body>
@@ -187,31 +195,46 @@
             </div>
 
             <div class="row g-4 mb-4">
-                <div class="col-lg-5">
+                <!-- A. 課表執行能力：只看訓練數據 -->
+                <div class="col-lg-6">
                     <div class="r-card h-100 mb-0">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="fw-bold mb-0">今日身體狀態</h5>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <h5 class="fw-bold mb-0"><i class="fa-solid fa-person-running me-2" style="color: var(--r-purple);"></i>課表執行能力</h5>
                             <span class="small" id="status-updated">尚未同步</span>
                         </div>
+                        <p class="small mb-3" style="opacity: 0.7;">負荷、跑量、強度分配與有氧效率</p>
                         <div class="readiness-grid">
                             <div class="metric"><div class="stat-label">狀態 TSB</div><div class="metric-value" id="m-tsb">--</div><div class="metric-sub" id="m-load">體能 -- ／ 疲勞 --</div></div>
-                            <div class="metric"><div class="stat-label">靜止心率</div><div class="metric-value" id="m-rhr">--</div><div class="metric-sub" id="m-rhr-sub">28 天平均 --</div></div>
-                            <div class="metric"><div class="stat-label">睡眠</div><div class="metric-value" id="m-sleep">--</div><div class="metric-sub" id="m-sleep-sub">無資料</div></div>
                             <div class="metric"><div class="stat-label">近 7 天跑量</div><div class="metric-value" id="m-km7">--</div><div class="metric-sub" id="m-km7-sub">前 4 週平均 --</div></div>
+                            <div class="metric"><div class="stat-label">強度分配 (28 天)</div><div class="zone-bar my-2" id="m-zone-bar"></div><div class="metric-sub" id="m-zone-sub">無心率區間資料</div></div>
+                            <div class="metric"><div class="stat-label">有氧效率 (輕鬆跑)</div><div class="metric-value" id="m-ef">--</div><div class="metric-sub" id="m-ef-sub">每次心跳前進公尺</div></div>
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-7">
+                <!-- B. 身體日常狀態：只看恢復數據與主觀感受 -->
+                <div class="col-lg-6">
                     <div class="r-card h-100 mb-0">
-                        <h5 class="fw-bold mb-3">今天感覺如何？</h5>
+                        <h5 class="fw-bold mb-1"><i class="fa-solid fa-bed me-2" style="color: var(--r-green);"></i>身體日常狀態</h5>
+                        <p class="small mb-3" style="opacity: 0.7;">靜止心率（只採用有戴錶睡覺的日子）、睡眠、日常活動量</p>
+                        <div class="readiness-grid">
+                            <div class="metric"><div class="stat-label">靜止心率</div><div class="metric-value" id="m-rhr">--</div><div class="metric-sub" id="m-rhr-sub">基準 --</div></div>
+                            <div class="metric"><div class="stat-label">昨晚睡眠</div><div class="metric-value" id="m-sleep">--</div><div class="metric-sub" id="m-sleep-sub">近 7 晚戴錶 --</div></div>
+                        </div>
+                        <div class="small mt-2" id="m-body-warn" style="display: none; color: var(--r-orange) !important;"></div>
+                        <div class="small mt-2" id="m-steps"></div>
+                        <h6 class="fw-bold mt-3 mb-2">今天感覺如何？</h6>
                         <div id="checkin-rows"></div>
-                        <input type="text" id="planned-today" class="form-control mt-3" placeholder="今天原本預計練什麼？可留空，例如：間歇 800m x 6">
-                        <button type="button" class="btn btn-gradient-purple px-4 py-2 mt-3" onclick="getDailyAdvice()">
-                            <i class="fa-solid fa-wand-magic-sparkles me-2"></i>取得今日建議
-                        </button>
-                        <div id="advice-box" class="advice-box mt-3" style="display: none;" aria-live="polite"></div>
                     </div>
                 </div>
+            </div>
+
+            <div class="r-card">
+                <h5 class="fw-bold mb-3"><i class="fa-solid fa-wand-magic-sparkles me-2" style="color: var(--r-purple);"></i>今日建議</h5>
+                <div class="d-flex flex-wrap gap-2">
+                    <input type="text" id="planned-today" class="form-control flex-grow-1" style="min-width: 220px; width: auto;" placeholder="今天原本預計練什麼？可留空，例如：間歇 800m x 6">
+                    <button type="button" class="btn btn-gradient-purple px-4" onclick="getDailyAdvice()">取得今日建議</button>
+                </div>
+                <div id="advice-box" class="mt-3" style="display: none;" aria-live="polite"></div>
             </div>
 
             <div class="r-card p-2 p-md-3">
@@ -246,6 +269,19 @@
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <div class="r-card" id="activity-analysis" style="display: none;">
+                <h5 class="fw-bold mb-3">活動分析</h5>
+                <div class="extra-stats mb-4" id="extra-stats"></div>
+                <div class="row g-4" id="stream-charts">
+                    <div class="col-lg-6" id="wrap-hr"><div class="chart-title"><i class="fa-solid fa-heart-pulse me-2 text-danger"></i>心率 (bpm)</div><div class="stream-box"><canvas id="hrChart"></canvas></div></div>
+                    <div class="col-lg-6" id="wrap-pace"><div class="chart-title"><i class="fa-solid fa-gauge-high me-2 text-success"></i>配速 (/km)</div><div class="stream-box"><canvas id="paceChart"></canvas></div></div>
+                    <div class="col-lg-6" id="wrap-cad"><div class="chart-title"><i class="fa-solid fa-shoe-prints me-2 text-info"></i>步頻 (spm)</div><div class="stream-box"><canvas id="cadChart"></canvas></div></div>
+                    <div class="col-lg-6" id="wrap-zone"><div class="chart-title"><i class="fa-solid fa-layer-group me-2 text-warning"></i>心率區間 (分鐘)</div><div class="stream-box"><canvas id="zoneChart"></canvas></div></div>
+                    <div class="col-lg-6" id="wrap-alt"><div class="chart-title"><i class="fa-solid fa-mountain me-2" style="color: var(--r-orange);"></i>海拔 (m)</div><div class="stream-box"><canvas id="altChart"></canvas></div></div>
+                </div>
+                <p class="small mb-0" id="analysis-note"></p>
             </div>
 
             <div class="row g-4">
@@ -348,9 +384,15 @@
         <div id="tab-records" class="tab-pane">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2 class="fw-bold mb-0">所有活動紀錄</h2>
-                <button class="btn btn-garmin shadow px-4" onclick="syncGarmin()">
-                    <i class="fa-solid fa-rotate me-2"></i> 同步 Garmin
-                </button>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-light rounded-pill px-4" onclick="document.getElementById('csvFile').click()" title="從 Garmin Connect 活動列表匯出的 CSV">
+                        <i class="fa-solid fa-file-csv me-2"></i> 匯入 CSV
+                    </button>
+                    <input type="file" id="csvFile" accept=".csv" hidden onchange="importCsv(this)">
+                    <button class="btn btn-garmin shadow px-4" onclick="syncGarmin()">
+                        <i class="fa-solid fa-rotate me-2"></i> 同步 Garmin
+                    </button>
+                </div>
             </div>
 
             <div class="r-card p-0" style="overflow: hidden;">
@@ -474,7 +516,10 @@
         // 2. 地圖與 Chart.js 圖表
         // ==========================================
         const map = L.map('runMap', { zoomControl: false, dragging: true, scrollWheelZoom: true }).setView([25.04, 121.53], 12);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
+        // CARTO 底圖現在要 API key，改用免金鑰的 Esri 深灰底圖 + 地名標籤
+        const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas';
+        L.tileLayer(`${ESRI}/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}`, { maxZoom: 16, attribution: 'Tiles &copy; Esri' }).addTo(map);
+        L.tileLayer(`${ESRI}/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}`, { maxZoom: 16 }).addTo(map);
         let polyline = null;
 
         const chartData = { '7days': { labels: [], data: [] }, '12weeks': { labels: [], data: [] } };
@@ -497,7 +542,7 @@
             if (type === 'Walk' || type === 'Hike') return '<i class="fa-solid fa-person-walking text-warning fs-5"></i>';
             return '<i class="fa-solid fa-person-running text-success fs-5"></i>';
         }
-        function sourceLabel(src) { return src === 'garmin' ? 'Garmin' : '手動輸入'; }
+        function sourceLabel(src) { return src === 'garmin' ? 'Garmin' : src === 'csv' ? 'Garmin CSV' : '手動輸入'; }
 
         function renderRecords() {
             const container = document.getElementById('records-container');
@@ -531,7 +576,9 @@
             document.getElementById('overview-icon-container').innerHTML = icon;
             const badge = act.source === 'garmin'
                 ? `<span class="badge ms-2" style="background:#007cc3;">Garmin</span>`
-                : `<span class="badge bg-success ms-2">手動新增</span>`;
+                : act.source === 'csv'
+                    ? `<span class="badge bg-secondary ms-2">Garmin CSV</span>`
+                    : `<span class="badge bg-success ms-2">手動新增</span>`;
             document.getElementById('dash-run-title').innerHTML = `${esc(act.title)} ${badge}`;
             document.getElementById('dash-run-time').innerText = act.date;
             document.getElementById('dash-val-dist').innerText = act.dist;
@@ -544,18 +591,111 @@
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
 
-            // 軌跡：第一次點開才向後端要，後端會快取在資料庫
+            // 軌跡與曲線：第一次點開才向後端要，後端會快取在資料庫
+            const token = ++detailToken;
             if (polyline) { map.removeLayer(polyline); polyline = null; }
-            let path = act.route;
-            if (!path && act.has_route) {
-                try { path = await api(`/api/workouts/${encodeURIComponent(act.id)}/route`); }
-                catch (e) { console.warn('軌跡載入失敗', e); path = []; }
-                act.route = path;
+            renderAnalysis(act, null, act.has_detail && !act.detail);
+            let detail = act.detail;
+            if (!detail && act.has_detail) {
+                try {
+                    detail = await api(`/api/workouts/${encodeURIComponent(act.id)}/detail`);
+                    Object.assign(act, detail.activity);   // 補上步頻、爬升等摘要
+                    act.detail = detail;
+                } catch (e) { console.warn('活動細節載入失敗', e); }
             }
+            if (token !== detailToken) return;   // 使用者已經點了別筆
+            renderAnalysis(act, detail, false);
+            const path = detail && detail.route;
             if (path && path.length > 1) {
                 polyline = L.polyline(path, { color: '#32d74b', weight: 5, opacity: 0.9, lineJoin: 'round' }).addTo(map);
                 map.fitBounds(polyline.getBounds(), { padding: [30, 30] });
             }
+        }
+
+        // ==========================================
+        // 3-1. 活動分析：額外數據 + 心率 / 配速 / 步頻 / 海拔曲線
+        // ==========================================
+        let detailToken = 0;
+        const streamCharts = {};
+
+        function fmtPace(sec) {
+            if (sec == null) return '--';
+            const m = Math.floor(sec / 60), s = Math.round(sec % 60);
+            return `${m}'${String(s).padStart(2, '0')}"`;
+        }
+
+        function drawStream(canvasId, wrapId, labels, data, color, extra = {}) {
+            if (streamCharts[canvasId]) { streamCharts[canvasId].destroy(); delete streamCharts[canvasId]; }
+            const wrap = document.getElementById(wrapId);
+            if (!data || !data.some(v => v != null)) { wrap.style.display = 'none'; return; }
+            wrap.style.display = '';
+            const tickColor = '#8e8e93', grid = 'rgba(255, 255, 255, 0.05)';
+            streamCharts[canvasId] = new Chart(document.getElementById(canvasId), {
+                type: 'line',
+                data: { labels, datasets: [{ data, borderColor: color, backgroundColor: color + '33', fill: true, borderWidth: 1.5, pointRadius: 0, tension: 0.25, spanGaps: true }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false, animation: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => extra.fmt ? extra.fmt(c.parsed.y) : c.formattedValue } } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: tickColor, maxTicksLimit: 8, maxRotation: 0 } },
+                        y: { reverse: !!extra.reverse, min: extra.min, max: extra.max, grid: { color: grid }, ticks: { color: tickColor, callback: v => extra.fmt ? extra.fmt(v) : v } }
+                    }
+                }
+            });
+        }
+
+        function drawZones(zones) {
+            if (streamCharts.zoneChart) { streamCharts.zoneChart.destroy(); delete streamCharts.zoneChart; }
+            const wrap = document.getElementById('wrap-zone');
+            if (!zones || !zones.times || !zones.times.some(t => t > 0)) { wrap.style.display = 'none'; return; }
+            wrap.style.display = '';
+            const b = zones.bounds;
+            const labels = zones.times.map((_, i) => `Z${i + 1} ${i === 0 ? '<' + b[0] : (b[i - 1] + '–' + (b[i] ?? ''))}`);
+            const colors = ['#8e8e93', '#0a84ff', '#32d74b', '#ffd60a', '#ff9f0a', '#ff453a', '#bf5af2'];
+            streamCharts.zoneChart = new Chart(document.getElementById('zoneChart'), {
+                type: 'bar',
+                data: { labels, datasets: [{ data: zones.times.map(t => +(t / 60).toFixed(1)), backgroundColor: colors.slice(0, labels.length), borderRadius: 4 }] },
+                options: {
+                    indexAxis: 'y', responsive: true, maintainAspectRatio: false, animation: false,
+                    plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.formattedValue} 分鐘` } } },
+                    scales: { x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#8e8e93' } }, y: { grid: { display: false }, ticks: { color: '#8e8e93' } } }
+                }
+            });
+        }
+
+        function renderAnalysis(act, detail, loading) {
+            document.getElementById('activity-analysis').style.display = 'block';
+            const items = [
+                ['步頻', act.cadence, 'spm'], ['最大心率', act.max_hr, 'bpm'], ['總爬升', act.elev, 'm'],
+                ['卡路里', act.calories, 'kcal'], ['訓練負荷', act.load, ''],
+            ].filter(([, v]) => v != null);
+            document.getElementById('extra-stats').innerHTML = items.map(([label, v, unit]) =>
+                `<div class="metric"><div class="stat-label">${label}</div><div class="metric-value">${esc(v)}<span class="fs-6 ms-1">${unit}</span></div></div>`).join('');
+
+            const s = detail && detail.streams;
+            const note = document.getElementById('analysis-note');
+            document.getElementById('stream-charts').style.display = (s || (detail && detail.hr_zones)) ? '' : 'none';
+            if (loading) note.innerText = '載入心率、步頻與配速曲線中...';
+            else if (s) note.innerText = '';
+            else if (act.source === 'garmin') note.innerText = '這筆活動沒有逐秒資料。';
+            else note.innerText = `這筆是${act.source === 'csv' ? ' CSV 匯入' : '手動輸入'}的紀錄，只有摘要數據，沒有軌跡和曲線。`;
+
+            if (!s) {
+                [['hrChart', 'wrap-hr'], ['paceChart', 'wrap-pace'], ['cadChart', 'wrap-cad'], ['altChart', 'wrap-alt']]
+                    .forEach(([c, w]) => drawStream(c, w, [], null));
+                drawZones(detail && detail.hr_zones);
+                return;
+            }
+            const labels = s.distance_km && s.distance_km.some(v => v)
+                ? s.distance_km.map(v => v == null ? '' : `${v.toFixed(1)} km`)
+                : s.time.map(t => `${Math.round(t / 60)} 分`);
+            drawStream('hrChart', 'wrap-hr', labels, s.heartrate, '#ff453a');
+            // 停下來時配速會爆表，超過 15 分/公里的點不畫
+            drawStream('paceChart', 'wrap-pace', labels, (s.pace || []).map(v => v && v < 900 ? v : null), '#32d74b', { reverse: true, fmt: fmtPace });
+            drawStream('cadChart', 'wrap-cad', labels, (s.cadence || []).map(v => v || null), '#64d2ff');
+            drawStream('altChart', 'wrap-alt', labels, s.altitude, '#ff9f0a');
+            drawZones(detail.hr_zones);
         }
 
         // ==========================================
@@ -601,6 +741,26 @@
             }
         }
 
+        async function importCsv(input) {
+            const file = input.files[0];
+            input.value = '';   // 讓同一個檔案可以再選一次
+            if (!file) return;
+            const form = new FormData();
+            form.append('file', file);
+            showLoading('正在匯入 CSV...', file.name);
+            try {
+                const res = await fetch(API + '/api/import/garmin-csv', { method: 'POST', body: form });
+                const r = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(r.error || `後端回應錯誤 (${res.status})`);
+                await loadAll();
+                alert(`匯入完成：新增或更新 ${r.imported} 筆` + (r.skipped ? `，${r.skipped} 筆 intervals.icu 已經有了所以略過` : '') + '。');
+            } catch (e) {
+                alert('匯入失敗：' + e.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
         // ==========================================
         // 5. 今日狀態 + 主觀感受 + AI 每日建議
         // ==========================================
@@ -622,22 +782,58 @@
 
         function renderStatus(s) {
             const fmt = v => (v === null || v === undefined) ? '--' : v;
+            const tr = s.training, bd = s.body;
+
+            // ---- A. 課表執行能力 ----
             const tsbEl = document.getElementById('m-tsb');
-            tsbEl.innerText = fmt(s.tsb);
-            tsbEl.className = 'metric-value ' + (s.tsb === null ? '' : s.tsb < -30 ? 'text-danger' : s.tsb > 5 ? 'text-green' : '');
-            document.getElementById('m-load').innerText = `體能 ${fmt(s.ctl)} ／ 疲勞 ${fmt(s.atl)}`;
+            tsbEl.innerText = fmt(tr.tsb);
+            tsbEl.className = 'metric-value ' + (tr.tsb === null ? '' : tr.tsb < -30 ? 'text-danger' : tr.tsb > 5 ? 'text-green' : '');
+            document.getElementById('m-load').innerText = `體能 ${fmt(tr.ctl)} ／ 疲勞 ${fmt(tr.atl)}`
+                + (tr.ctl_ramp_7d != null ? `（7 天 ${tr.ctl_ramp_7d > 0 ? '+' : ''}${tr.ctl_ramp_7d}）` : '');
 
+            const kmEl = document.getElementById('m-km7');
+            kmEl.innerText = `${tr.km7} km`;
+            kmEl.className = 'metric-value ' + (tr.weekly_avg_4w > 0 && tr.km7 > tr.weekly_avg_4w * 1.1 ? 'text-warning' : '');
+            document.getElementById('m-km7-sub').innerText = `${tr.runs7} 次；前 4 週平均 ${tr.weekly_avg_4w} km/週`;
+
+            const it = tr.intensity_28d;
+            document.getElementById('m-zone-bar').innerHTML = it
+                ? `<span style="width:${it.easy_pct}%; background: var(--r-green);"></span><span style="width:${it.moderate_pct}%; background: #ffd60a;"></span><span style="width:${it.hard_pct}%; background: #ff453a;"></span>`
+                : '';
+            document.getElementById('m-zone-sub').innerText = it
+                ? `輕鬆 ${it.easy_pct}%・中 ${it.moderate_pct}%・高 ${it.hard_pct}%（${it.hours} h）` : '無心率區間資料';
+
+            const er = tr.easy_recent, eb = tr.easy_before;
+            const efEl = document.getElementById('m-ef');
+            efEl.innerText = er ? `${er.m_per_beat} m` : '--';
+            efEl.className = 'metric-value ' + (er && eb ? (er.m_per_beat >= eb.m_per_beat ? 'text-green' : 'text-warning') : '');
+            document.getElementById('m-ef-sub').innerText = er
+                ? `近 14 天 ${er.runs} 次 ${er.pace}/km @${er.avg_hr}` + (eb ? `；之前 ${eb.m_per_beat} m` : '')
+                : '近 14 天沒有戶外輕鬆跑';
+
+            // ---- B. 身體日常狀態 ----
             const rhrEl = document.getElementById('m-rhr');
-            rhrEl.innerText = fmt(s.resting_hr);
-            const rhrHigh = s.resting_hr && s.resting_hr_avg && s.resting_hr - s.resting_hr_avg >= 5;
+            rhrEl.innerText = fmt(bd.resting_hr);
+            const rhrHigh = bd.resting_hr && bd.resting_hr_baseline && bd.resting_hr - bd.resting_hr_baseline >= 5;
+            const stale = bd.resting_hr == null || bd.resting_hr_days_ago > 2;
             rhrEl.className = 'metric-value ' + (rhrHigh ? 'text-danger' : '');
-            document.getElementById('m-rhr-sub').innerText = `28 天平均 ${fmt(s.resting_hr_avg)}`;
+            rhrEl.style.opacity = stale ? 0.5 : 1;
+            document.getElementById('m-rhr-sub').innerText = bd.resting_hr
+                ? `${bd.resting_hr_days_ago === 0 ? '今天' : bd.resting_hr_days_ago + ' 天前'}；基準 ${fmt(bd.resting_hr_baseline)}（${bd.resting_hr_baseline_days} 天）`
+                : '沒有可靠資料';
 
-            document.getElementById('m-sleep').innerText = s.sleep_h ? `${s.sleep_h} h` : '--';
-            document.getElementById('m-sleep-sub').innerText = s.sleep_date ? s.sleep_date.slice(5).replace('-', '/') : '無資料';
+            document.getElementById('m-sleep').innerText = bd.sleep_h ? `${bd.sleep_h} h` : '--';
+            document.getElementById('m-sleep-sub').innerText = `近 7 晚戴錶 ${bd.nights_worn_7d} 晚`;
 
-            document.getElementById('m-km7').innerText = `${s.km7} km`;
-            document.getElementById('m-km7-sub').innerText = `前 4 週平均 ${s.weekly_avg_4w} km/週`;
+            const warn = document.getElementById('m-body-warn');
+            const msgs = [];
+            if (!bd.worn_last_night) msgs.push('昨晚沒戴錶睡覺，沒有睡眠和可靠的靜止心率。');
+            if (bd.resting_hr_unreliable_today) msgs.push(`Garmin 今天顯示靜止心率 ${bd.resting_hr_unreliable_today}，因為沒戴錶睡覺不採用。`);
+            if (stale) msgs.push('今天的身體狀態主要靠下方的主觀感受判斷。');
+            warn.innerHTML = msgs.map(m => `<div><i class="fa-solid fa-triangle-exclamation me-1"></i>${esc(m)}</div>`).join('');
+            warn.style.display = msgs.length ? 'block' : 'none';
+            document.getElementById('m-steps').innerText = bd.steps_yesterday != null
+                ? `昨天 ${bd.steps_yesterday.toLocaleString()} 步（前 7 天平均 ${bd.steps_avg_7d ? bd.steps_avg_7d.toLocaleString() : '--'} 步）` : '';
 
             document.getElementById('status-updated').innerText = s.last_sync
                 ? `上次同步 ${s.last_sync.slice(5, 16).replace('T', ' ')}` : '尚未同步';
@@ -645,9 +841,9 @@
                 ? '<i class="fa-solid fa-circle-check" style="color: var(--r-green);"></i> Garmin 已同步'
                 : '<i class="fa-solid fa-circle-xmark text-danger"></i> 尚未同步 Garmin');
 
-            if (s.checkin) {
+            if (bd.checkin) {
                 checkinFields.forEach(f => {
-                    const v = s.checkin[f.key];
+                    const v = bd.checkin[f.key];
                     const el = v && document.getElementById(`ck-${f.key}-${v}`);
                     if (el) el.checked = true;
                 });
@@ -666,7 +862,7 @@
         async function getDailyAdvice() {
             const ck = readCheckin();
             if (Object.values(ck).some(v => v === null)) { alert('請把四個項目都點選一個分數'); return; }
-            showLoading('AI 教練正在看你的數據...', '綜合跑量、負荷、靜止心率、睡眠與今天的感覺');
+            showLoading('AI 教練正在看你的數據...', '分別評估課表執行能力與身體日常狀態');
             try {
                 await api('/api/checkin', { method: 'POST', body: JSON.stringify(ck) });
                 const advice = await api('/api/coach/today', {
@@ -687,16 +883,38 @@
                 easy: { text: '降低強度', cls: 'verdict-easy' },
                 rest: { text: '休息恢復', cls: 'verdict-rest' },
             };
+            const ratingMap = {
+                good: { text: '良好', color: 'var(--r-green)' },
+                ok: { text: '普通', color: '#ffd60a' },
+                caution: { text: '注意', color: '#ff453a' },
+            };
             const v = verdictMap[a.verdict] || { text: '建議', cls: 'verdict-easy' };
+            const part = (title, icon, p) => {
+                if (!p) return '';
+                const r = ratingMap[p.rating] || { text: '', color: '#8e8e93' };
+                return `<div class="col-md-6"><div class="advice-box h-100">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <span class="fw-bold"><i class="fa-solid ${icon} me-2"></i>${title}</span>
+                        <span class="fw-bold small" style="color: ${r.color} !important;">● ${r.text}</span>
+                    </div>
+                    <div class="mb-2">${esc(p.summary)}</div>
+                    <ul class="small mb-0 ps-3">${(p.points || []).map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+                </div></div>`;
+            };
             const box = document.getElementById('advice-box');
             box.innerHTML = `
-                <div class="d-flex align-items-center gap-2 mb-2">
-                    <span class="verdict-pill ${v.cls}">${v.text}</span>
-                    <span class="fw-bold">${esc(a.headline)}</span>
+                <div class="row g-3 mb-3">
+                    ${part('課表執行能力', 'fa-person-running', a.training)}
+                    ${part('身體日常狀態', 'fa-bed', a.body)}
                 </div>
-                <div class="advice-workout mb-2">${esc(a.workout)}</div>
-                <ul class="small mb-2 ps-3">${(a.reasons || []).map(r => `<li>${esc(r)}</li>`).join('')}</ul>
-                ${a.tip ? `<div class="small"><i class="fa-regular fa-lightbulb me-1"></i>${esc(a.tip)}</div>` : ''}`;
+                <div class="advice-box">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="verdict-pill ${v.cls}">${v.text}</span>
+                        <span class="fw-bold">${esc(a.headline)}</span>
+                    </div>
+                    <div class="advice-workout mb-2">${esc(a.workout)}</div>
+                    ${a.tip ? `<div class="small"><i class="fa-regular fa-lightbulb me-1"></i>${esc(a.tip)}</div>` : ''}
+                </div>`;
             box.style.display = 'block';
         }
 

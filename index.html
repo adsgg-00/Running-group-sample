@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>R - 跑者無懼</title>
+    <title>R - 跑者智慧助理</title>
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -83,7 +83,7 @@
         }
 
         .hero-title {
-            font-size: 5.5rem;
+            font-size: clamp(2.25rem, 5vw, 5.5rem);
             font-weight: 900;
             letter-spacing: -2px;
             text-shadow: 2px 2px 10px rgba(0,0,0,0.7);
@@ -99,7 +99,24 @@
             font-size: 1.1rem;
             transition: all 0.2s;
         }
-        .btn-play:hover { background-color: #d4d4d4; transform: scale(1.02); }
+        .btn.btn-play:hover, .btn.btn-play:focus-visible, .btn.btn-play:active {
+            background-color: #d4d4d4;
+            color: #000000;
+            transform: scale(1.02);
+        }
+        .btn-play-sm { padding: 6px 16px; font-size: 0.9rem; white-space: nowrap; }
+
+        /* 捲動離開主視覺後出現的儀表板按鈕 */
+        .dashboard-fab {
+            position: fixed;
+            right: 24px;
+            bottom: 24px;
+            z-index: 1030;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s, visibility 0.25s, transform 0.2s;
+        }
+        .dashboard-fab.is-visible { opacity: 1; visibility: visible; }
 
         .btn-add {
             background-color: rgba(255, 255, 255, 0.15);
@@ -280,10 +297,11 @@
             </div>
 
             <div class="d-flex align-items-center gap-3">
-                <div class="input-group input-group-sm" style="width: 220px;">
+                <div class="input-group input-group-sm d-none d-lg-flex" style="width: 220px;">
                     <span class="input-group-text bg-transparent border-0 text-white ps-2"><i class="fa-solid fa-search"></i></span>
                     <input type="text" class="form-control search-bar" placeholder="搜尋">
                 </div>
+                <a href="challenge.html" class="btn btn-play btn-play-sm"><i class="fa-solid fa-chart-line me-2"></i>儀表板</a>
                 <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center cursor-pointer" style="width: 34px; height: 34px;">
                     <i class="fa-solid fa-user text-white small"></i>
                 </div>
@@ -296,21 +314,21 @@
             <div class="container-fluid px-5">
                 <div class="row">
                     <div class="col-md-7 col-lg-5 text-start mt-4">
-                        <span class="hero-badge text-white d-inline-block mb-3">熱門運動紀錄片</span>
-                        <h1 class="hero-title">跑者無懼</h1>
+                        <span class="hero-badge text-white d-inline-block mb-3">你的 AI 跑步教練</span>
+                        <h1 class="hero-title">跑者智慧助理</h1>
                         
                         <div class="d-flex align-items-center gap-3 mb-3 text-light small fw-bold">
-                            <span class="bg-dark rounded px-2 py-1 border border-secondary"><i class="fa-brands fa-apple"></i> 紀錄片 · 體育</span>
-                            <span class="border border-secondary rounded px-2">13+</span>
+                            <span class="bg-dark rounded px-2 py-1 border border-secondary"><i class="fa-solid fa-robot"></i> AI 教練 · 訓練分析</span>
+                            <span class="border border-secondary rounded px-2 py-1">Garmin 同步</span>
                         </div>
                         
                         <p class="fs-6 text-light mb-4" style="line-height: 1.6; opacity: 0.9;">
-                            一群頂尖田徑運動員在賽道上挑戰人體極限，汗水、淚水與無數次的起跑，只為了在終點線前超越昨天的自己。深入了解跑者背後堅韌不拔的故事。
+                            同步你的 Garmin 訓練紀錄，AI 教練每天根據訓練負荷、睡眠與身體狀態，告訴你今天該怎麼練，並為你的目標賽事排出專屬課表。
                         </p>
                         
                         <div class="d-flex gap-3 mt-4">
-                            <button class="btn btn-play shadow"><i class="fa-solid fa-play me-2"></i>播放</button>
-                            <button class="btn btn-add" title="加入片單"><i class="fa-solid fa-plus fs-5"></i></button>
+                            <a href="challenge.html" class="btn btn-play shadow"><i class="fa-solid fa-chart-line me-2"></i>前往儀表板</a>
+                            <button class="btn btn-add" title="了解更多" aria-label="了解更多" data-bs-toggle="modal" data-bs-target="#introModal"><i class="fa-solid fa-info fs-5"></i></button>
                         </div>
                     </div>
                 </div>
@@ -319,7 +337,7 @@
     </header>
 
     <section class="carousel-section">
-        <h2 class="section-title">在 R 上繼續觀看 <i class="fa-solid fa-chevron-right ms-2 fs-6 mt-1 text-secondary"></i></h2>
+        <h2 class="section-title">從傳奇跑者身上找動力 <i class="fa-solid fa-chevron-right ms-2 fs-6 mt-1 text-secondary"></i></h2>
         
         <div class="swiper mySwiper pt-2 pb-4">
             <div class="swiper-wrapper">
@@ -459,6 +477,8 @@
         </div>
     </section>
 
+    <a href="challenge.html" id="dashboardFab" class="btn btn-play btn-play-sm shadow dashboard-fab"><i class="fa-solid fa-chart-line me-2"></i>前往儀表板</a>
+
     <div class="offcanvas offcanvas-end offcanvas-dark" tabindex="-1" id="menuOffcanvas">
         <div class="offcanvas-header border-bottom border-secondary">
             <h5 class="offcanvas-title fw-bold">網站選單</h5>
@@ -471,7 +491,7 @@
                 </a>
                 
                 <a href="challenge.html" class="text-white text-decoration-none fs-5 fw-bold hover-white">
-                    <i class="fa-solid fa-chart-line me-3 text-success"></i>自我挑戰 (儀表板)
+                    <i class="fa-solid fa-chart-line me-3 text-success"></i>訓練儀表板
                 </a>
                 
                 <a href="#roster" class="text-white text-decoration-none fs-5 fw-bold hover-white" data-bs-dismiss="offcanvas">
@@ -485,11 +505,17 @@
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content modal-content-dark shadow-lg">
                 <div class="modal-header border-bottom border-secondary">
-                    <h5 class="modal-title fw-bold fs-4">關於跑者無懼</h5>
+                    <h5 class="modal-title fw-bold fs-4">關於跑者智慧助理</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <p class="text-light">這裡預留給您填寫介紹背景故事。</p>
+                    <p class="text-light mb-4">跑者智慧助理把你的訓練紀錄變成每天都用得上的建議，讓每一次出門都練得更有方向。</p>
+                    <div class="d-flex flex-column gap-3 mb-4">
+                        <div><i class="fa-solid fa-robot me-2 text-secondary"></i><strong>AI 每日教練</strong><div class="text-white-50 small mt-1">綜合訓練負荷、睡眠與主觀感受，判斷今天該照表操課、降低強度或休息。</div></div>
+                        <div><i class="fa-solid fa-calendar-days me-2 text-secondary"></i><strong>專屬訓練課表</strong><div class="text-white-50 small mt-1">依照目標賽事、可訓練日與近期配速，排出適合你的兩週課表。</div></div>
+                        <div><i class="fa-solid fa-chart-line me-2 text-secondary"></i><strong>訓練數據儀表板</strong><div class="text-white-50 small mt-1">同步 Garmin 紀錄，集中查看跑量、配速與心率變化。</div></div>
+                    </div>
+                    <a href="challenge.html" class="btn btn-play"><i class="fa-solid fa-chart-line me-2"></i>前往儀表板</a>
                 </div>
             </div>
         </div>
@@ -514,6 +540,12 @@
             .cursor-pointer { cursor: pointer; }
         `;
         document.head.appendChild(style);
+
+        // 主視覺離開畫面後，顯示儀表板按鈕
+        const dashboardFab = document.getElementById('dashboardFab');
+        new IntersectionObserver(([entry]) => {
+            dashboardFab.classList.toggle('is-visible', !entry.isIntersecting);
+        }).observe(document.querySelector('.hero-section'));
 
         // 跳轉運動員功能
         function jumpToAthlete(id) {
