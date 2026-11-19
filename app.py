@@ -497,6 +497,92 @@ def workout_detail(wid):
 RUN_FILTER = f"type IN ({','.join('?' * len(RUN_TYPES))})"
 
 
+# 本週訓練：每天的訓練類型、週跑量與警訊
+TRAINED_KINDS = ("easy", "moderate", "hard", "long", "run", "cross")
+LONG_RUN_MIN_KM = 8  # 長距離至少 8 km，且達到前 4 週平均週跑量的 25%
+
+
+def week_summary(conn, today):
+    monday = today - timedelta(days=today.weekday())
+    sunday = monday + timedelta(days=6)
+    first = monday - timedelta(days=28)
+    rows = conn.execute(
+        "SELECT date(start_local) AS d, type, title, distance_m, hr_zones_json FROM workouts "
+        "WHERE date(start_local) >= ? AND date(start_local) <= ?",
+        (first.isoformat(), sunday.isoformat())).fetchall()
+    by_day = {}
+    for r in rows:
+        by_day.setdefault(r["d"], []).append(r)
+
+    prev_km = sum((r["distance_m"] or 0) for r in rows
+                  if r["type"] in RUN_TYPES and r["d"] < monday.isoformat()) / 1000
+    avg_4w = prev_km / 4
+    long_km = max(LONG_RUN_MIN_KM, avg_4w * 0.25)
+
+    def day_info(d):
+        items = by_day.get(d.isoformat(), [])
+        runs = [r for r in items if r["type"] in RUN_TYPES]
+        real_runs = [r for r in runs if (r["distance_m"] or 0) >= 500]  # 0.5 km 以下是手錶切出來的片段
+        km = sum((r["distance_m"] or 0) for r in runs) / 1000
+        longest = max(((r["distance_m"] or 0) for r in real_runs), default=0) / 1000
+        if real_runs:
+            # 和 AI 教練相同的標準：高強度 Z4+ ≥ 30%、輕鬆 Z1–Z2 ≥ 70%，其餘算中強度
+            found = set()
+            for r in real_runs:
+                split = zone_split(r["hr_zones_json"]) if r["hr_zones_json"] else None
+                if split and sum(split):
+                    total = sum(split)
+                    found.add("hard" if split[2] / total >= 0.3 else "easy" if split[0] / total >= 0.7 else "moderate")
+            if "hard" in found:
+                kind = "hard"
+            elif longest >= long_km:
+                kind = "long"
+            elif "moderate" in found:
+                kind = "moderate"
+            elif "easy" in found:
+                kind = "easy"
+            else:
+                kind = "run"  # 沒有心率區間（手動、CSV 或沒戴心率）
+        elif items:
+            kind = "cross" if any(r["type"] not in RUN_TYPES for r in items) else "run"
+        elif d > today:
+            kind = "future"
+        elif d == today:
+            kind = "today"
+        else:
+            kind = "rest"
+        return {"date": d.isoformat(), "label": f"{d.month}/{d.day}", "weekday": "一二三四五六日"[d.weekday()],
+                "kind": kind, "km": round(km, 1), "longest_km": round(longest, 1),
+                "titles": [r["title"] for r in items if r["title"] and not (r["type"] in RUN_TYPES and (r["distance_m"] or 0) < 500)],
+                "is_today": d == today}
+
+    days = [day_info(monday + timedelta(days=i)) for i in range(7)]
+    total_km = round(sum(d["km"] for d in days), 1)
+
+    flags = []
+    if avg_4w > 0 and total_km > avg_4w * 1.1:
+        flags.append(f"本週跑量已達前 4 週平均的 {round(total_km / avg_4w * 100)}%，建議不超過 110%")
+    prev = day_info(monday - timedelta(days=1))
+    for a, b in zip([prev] + days[:-1], days):
+        if a["kind"] == "hard" and b["kind"] == "hard":
+            flags.append(f"週{a['weekday']}、週{b['weekday']}連續兩天高強度，中間最好安排輕鬆跑或休息")
+    streak, d = 0, today if day_info(today)["kind"] in TRAINED_KINDS else today - timedelta(days=1)
+    while d >= first and day_info(d)["kind"] in TRAINED_KINDS:
+        streak, d = streak + 1, d - timedelta(days=1)
+    if streak >= 7:
+        flags.append(f"已連續 {streak} 天訓練，沒有休息日")
+
+    return {
+        "start_label": f"{monday.month}/{monday.day}", "end_label": f"{sunday.month}/{sunday.day}",
+        "days": days, "total_km": total_km, "avg_4w": round(avg_4w, 1),
+        "over": bool(avg_4w > 0 and total_km > avg_4w * 1.1),
+        "hard_sessions": sum(d["kind"] == "hard" for d in days),
+        "longest_km": max(d["longest_km"] for d in days),
+        "rest_days": sum(d["kind"] == "rest" for d in days),
+        "flags": flags,
+    }
+
+
 @app.route("/api/stats", methods=["GET"])
 def stats():
     weeks = 12
@@ -533,6 +619,7 @@ def stats():
         "weekly": {"labels": week_labels, "data": [round(x, 2) for x in weekly]},
         "this_week_km": round(weekly[-1], 2),
         "total_km": round(total / 1000, 1),
+        "week": week_summary(get_db(), today),
     })
 
 

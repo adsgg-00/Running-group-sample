@@ -46,14 +46,31 @@
         .text-green { color: var(--r-green); }
         .leaflet-control-attribution, .leaflet-control-attribution a { color: var(--text-muted) !important; font-size: 0.7rem !important; }
         .leaflet-control-attribution a:hover { color: var(--text-main) !important; }
-        .calendar-item { display: flex; align-items: center; padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .calendar-item:last-child { border-bottom: none; }
-        .cal-date { width: 50px; text-align: center; margin-right: 15px; }
-        .cal-day { font-size: 0.8rem; color: var(--text-muted); font-weight: bold; }
-        .cal-num { font-size: 1.4rem; font-weight: 800; }
-        .workout-tag { width: 4px; height: 40px; border-radius: 4px; margin-right: 15px; }
-        .tag-purple { background-color: var(--r-purple); }
-        .tag-green { background-color: var(--r-green); }
+        /* 本週訓練 */
+        .week-range { font-size: 0.8rem; opacity: 0.7; }
+        .week-total { font-size: 1.6rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+        .week-total.is-over { color: var(--r-orange); }
+        .week-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
+        .week-day { min-width: 0; text-align: center; }
+        .week-day-name { margin-bottom: 6px; font-size: 0.75rem; font-weight: 700; opacity: 0.75; }
+        .week-day.is-today .week-day-name { color: var(--r-purple); opacity: 1; }
+        .week-chip { display: flex; align-items: center; justify-content: center; aspect-ratio: 1; border: 1px solid transparent; border-radius: 12px; font-weight: 800; }
+        .week-day.is-today .week-chip { outline: 2px solid #fff; outline-offset: 2px; }
+        .week-km { min-height: 1.2em; margin-top: 4px; font-size: 0.75rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .kind-easy { color: var(--r-green); background: rgba(50, 215, 75, 0.18); border-color: rgba(50, 215, 75, 0.4); }
+        .kind-moderate { color: #ffd60a; background: rgba(255, 214, 10, 0.16); border-color: rgba(255, 214, 10, 0.4); }
+        .kind-hard { color: #ff453a; background: rgba(255, 69, 58, 0.18); border-color: rgba(255, 69, 58, 0.45); }
+        .kind-long { color: var(--r-orange); background: rgba(255, 159, 10, 0.18); border-color: rgba(255, 159, 10, 0.45); }
+        .kind-run { color: #fff; background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.22); }
+        .kind-cross { color: #64d2ff; background: rgba(100, 210, 255, 0.14); border-color: rgba(100, 210, 255, 0.35); }
+        .kind-rest { color: rgba(255, 255, 255, 0.6); border: 1px dashed rgba(255, 255, 255, 0.25); }
+        .kind-today, .kind-future { color: rgba(255, 255, 255, 0.4); border: 1px dashed rgba(255, 255, 255, 0.12); }
+        .week-legend { display: flex; flex-wrap: wrap; gap: 2px 12px; margin-bottom: 12px; font-size: 0.7rem; opacity: 0.65; }
+        .week-legend span { white-space: nowrap; }
+        .week-stats { display: flex; flex-wrap: wrap; gap: 6px 16px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.06); font-size: 0.85rem; font-weight: 600; }
+        .week-flags { margin-top: 10px; font-size: 0.85rem; font-weight: 600; }
+        .week-flags .flag-warn { color: var(--r-orange); }
+        .week-flags .flag-ok { color: var(--r-green); }
         .modal-content-dark { background-color: var(--card-dark); color: var(--text-main); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; }
         .form-control, .form-select, .form-control-dark { background-color: rgba(255,255,255,0.06) !important; border: 1px solid rgba(255,255,255,0.12) !important; color: #ffffff !important; border-radius: 12px !important; padding: 12px 15px !important; }
         .form-control:focus, .form-select:focus { background-color: rgba(255,255,255,0.1) !important; color: #ffffff !important; border-color: var(--r-purple) !important; box-shadow: 0 0 0 4px rgba(191, 90, 242, 0.2) !important; }
@@ -330,13 +347,20 @@
             <div class="row g-4">
                 <div class="col-lg-6">
                     <div class="r-card h-100">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h5 class="fw-bold mb-0">即將到來的課表</h5>
-                            <span class="badge bg-dark border border-secondary text-light">第 4 週 / 共 16 週</span>
+                        <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                            <div>
+                                <h5 class="fw-bold mb-1">本週訓練</h5>
+                                <div class="week-range" id="week-range">--</div>
+                            </div>
+                            <div class="text-end">
+                                <div class="week-total" id="week-total">-- km</div>
+                                <div class="week-range" id="week-avg">前 4 週平均 --</div>
+                            </div>
                         </div>
-                        <div class="calendar-item" style="opacity: 0.6;"><div class="cal-date"><div class="cal-day">MON</div><div class="cal-num">14</div></div><div class="workout-tag tag-green"></div><div class="flex-grow-1"><h6 class="fw-bold mb-1">輕鬆跑 (Easy Run)</h6><div class="text-muted small">目標: 7.0 KM · 配速 6'15"</div></div><i class="fa-solid fa-circle-check fs-4" style="color: var(--r-green);"></i></div>
-                        <div class="calendar-item"><div class="cal-date"><div class="cal-day text-white">WED</div><div class="cal-num text-white">16</div></div><div class="workout-tag tag-purple"></div><div class="flex-grow-1"><h6 class="fw-bold mb-1">間歇訓練 (Intervals)</h6><div class="text-muted small">目標: 800m x 6 趟 · 恢復 90秒</div></div><div id="workout-action-btn"><button class="btn btn-sm btn-r-primary px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#startWorkoutModal">今日開始</button></div></div>
-                        <div class="calendar-item"><div class="cal-date"><div class="cal-day">SUN</div><div class="cal-num">20</div></div><div class="workout-tag" style="background-color: var(--r-orange);"></div><div class="flex-grow-1"><h6 class="fw-bold mb-1">長距離訓練 (LSD)</h6><div class="text-muted small">目標: 21.0 KM · 保持心率區間 2</div></div><i class="fa-solid fa-lock fs-5 text-muted"></i></div>
+                        <div class="week-grid" id="week-grid"></div>
+                        <div class="week-legend"><span>輕＝輕鬆</span><span>中＝中強度</span><span>強＝高強度</span><span>長＝長距離</span><span>跑＝無心率資料</span><span>交＝交叉訓練</span><span>休＝休息</span></div>
+                        <div class="week-stats" id="week-stats"></div>
+                        <div class="week-flags" id="week-flags" aria-live="polite"></div>
                     </div>
                 </div>
 
@@ -345,8 +369,8 @@
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h5 class="fw-bold mb-0">訓練量統計 (距離)</h5>
                             <select id="chartTimeRange" class="form-select w-auto shadow-sm" onchange="updateChartData()">
+                                <option value="12weeks" selected>最近 12 週</option>
                                 <option value="7days">最近 7 天</option>
-                                <option value="12weeks">最近 12 週</option>
                             </select>
                         </div>
                         <div style="height: 250px;">
@@ -474,25 +498,6 @@
     </main>
 
     <!-- 模態框視窗 -->
-    <div class="modal fade" id="startWorkoutModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content modal-content-dark shadow-lg">
-                <div class="modal-header border-bottom border-secondary"><h5 class="modal-title fw-bold">開始間歇訓練</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
-                <div class="modal-body text-center py-4">
-                    <div class="rounded-circle mx-auto mb-3" style="width: 80px; height: 80px; background-color: rgba(191, 90, 242, 0.2); display:flex; justify-content:center; align-items:center;">
-                        <i class="fa-solid fa-stopwatch fa-3x" style="color: var(--r-purple);"></i>
-                    </div>
-                    <h4 class="fw-bold mb-2">準備好衝刺了嗎？</h4>
-                    <p class="text-muted mb-4">目標：800m x 6 趟 (預估距離：4.8 KM)<br>記得連接您的裝置。</p>
-                </div>
-                <div class="modal-footer border-top border-secondary justify-content-center">
-                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">稍後再說</button>
-                    <button type="button" class="btn btn-r-primary px-5" onclick="finishWorkout()">同步並完成</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div class="modal fade" id="addRunModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content modal-content-dark shadow-lg">
@@ -814,6 +819,42 @@
         // ==========================================
         let currentWeeklyMileage = 0;
 
+        const WEEK_KINDS = {
+            easy: ['輕', '輕鬆跑'], moderate: ['中', '中強度'], hard: ['強', '高強度'], long: ['長', '長距離'],
+            run: ['跑', '跑步（沒有心率區間）'], cross: ['交', '交叉訓練'], rest: ['休', '休息'],
+            today: ['今', '今天還沒有訓練'], future: ['・', '還沒到'],
+        };
+
+        function renderWeek(w) {
+            if (!w) return;
+            document.getElementById('week-range').innerText = `${w.start_label} – ${w.end_label}（週一到週日）`;
+            const total = document.getElementById('week-total');
+            total.innerText = `${w.total_km} km`;
+            total.classList.toggle('is-over', w.over);
+            document.getElementById('week-avg').innerText = w.avg_4w > 0 ? `前 4 週平均 ${w.avg_4w} km` : '前 4 週沒有資料';
+
+            document.getElementById('week-grid').innerHTML = w.days.map(d => {
+                const [mark, name] = WEEK_KINDS[d.kind] || ['?', d.kind];
+                const detail = `${d.label} 週${d.weekday}：${name}` + (d.km > 0 ? `，${d.km} km` : '') + (d.titles.length ? `（${d.titles.join('、')}）` : '');
+                return `<div class="week-day${d.is_today ? ' is-today' : ''}" title="${esc(detail)}" role="img" aria-label="${esc(detail)}">
+                    <div class="week-day-name">${d.weekday}</div>
+                    <div class="week-chip kind-${esc(d.kind)}">${mark}</div>
+                    <div class="week-km">${d.km > 0 ? d.km : ''}</div>
+                </div>`;
+            }).join('');
+
+            document.getElementById('week-stats').innerHTML = [
+                `強度課 ${w.hard_sessions} 次`,
+                `最長 ${w.longest_km > 0 ? w.longest_km + ' km' : '--'}`,
+                `休息 ${w.rest_days} 天`,
+            ].map(s => `<span>${esc(s)}</span>`).join('');
+
+            const trained = w.days.some(d => !['rest', 'today', 'future'].includes(d.kind));
+            document.getElementById('week-flags').innerHTML = w.flags.length
+                ? w.flags.map(f => `<div class="flag-warn"><i class="fa-solid fa-triangle-exclamation me-1"></i>${esc(f)}</div>`).join('')
+                : trained ? '<div class="flag-ok"><i class="fa-solid fa-circle-check me-1"></i>目前沒有警訊</div>' : '';
+        }
+
         async function loadAll() {
             const [acts, stats, status] = await Promise.all([
                 api('/api/workouts?limit=300'), api('/api/stats'), api('/api/status')
@@ -830,6 +871,7 @@
             chartData['12weeks'] = stats.weekly;
             currentWeeklyMileage = stats.this_week_km;
             updateChartData();
+            renderWeek(stats.week);
             checkAchievements();
 
             renderStatus(status);
@@ -1087,11 +1129,6 @@
                     if (lockIcon) lockIcon.remove(); desc.innerHTML = '<span class="text-success fw-bold"><i class="fa-solid fa-circle-check"></i> 成功解鎖！</span>';
                 }
             }
-        }
-
-        function finishWorkout() {
-            bootstrap.Modal.getInstance(document.getElementById('startWorkoutModal')).hide();
-            document.getElementById('workout-action-btn').innerHTML = '<i class="fa-solid fa-circle-check fs-2 animate__animated animate__bounceIn" style="color: var(--r-purple);"></i>';
         }
 
         async function saveManualRun() {
