@@ -91,6 +91,13 @@
         .plan-action:hover, .plan-action:focus-visible { color: #fff; background: rgba(255,255,255,0.1); }
         .plan-conflict { color: var(--r-orange); font-size: 0.85rem; font-weight: 600; }
         .plan-modal-error { min-height: 1.2em; color: #ff453a; font-size: 0.85rem; font-weight: 600; }
+        .plan-sync-status { font-size: 0.85rem; font-weight: 600; }
+        .plan-sync-status.is-pending { color: var(--r-orange); }
+        .plan-sync-status.is-synced { color: var(--r-green); }
+        .plan-sync-icon { margin-left: 6px; font-size: 0.8rem; vertical-align: middle; }
+        .plan-sync-icon.is-synced { color: var(--r-green); }
+        .plan-sync-icon.is-pending { color: var(--r-orange); }
+        .plan-flash.is-error { color: #ff453a; }
         .min-w-0 { min-width: 0; }
         input[type="date"] { color-scheme: dark; }
         .modal-content-dark { background-color: var(--card-dark); color: var(--text-main); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; }
@@ -410,11 +417,17 @@
             <div class="r-card" id="my-plan-card">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-1">
                     <h4 class="fw-bold mb-0"><i class="fa-solid fa-calendar-check me-2" style="color: var(--r-purple);"></i>我的課表</h4>
-                    <button type="button" class="btn btn-outline-light rounded-pill px-4 fw-bold" onclick="openPlanModal()">
-                        <i class="fa-solid fa-plus me-2"></i>新增課表
-                    </button>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="button" class="btn btn-outline-light rounded-pill px-4 fw-bold" onclick="openPlanModal()">
+                            <i class="fa-solid fa-plus me-2"></i>新增課表
+                        </button>
+                        <button type="button" class="btn btn-garmin rounded-pill px-4" id="sync-plan-btn" onclick="syncPlanToWatch()">
+                            <i class="fa-solid fa-paper-plane me-2"></i>傳到手錶
+                        </button>
+                    </div>
                 </div>
                 <p class="plan-hint mb-2">接下來 14 天，每天一筆。點任一天就能新增或修改，AI 產生的課表套用後也會出現在這裡。</p>
+                <div class="plan-sync-status mb-1" id="plan-sync-status"></div>
                 <div class="plan-flash" id="plan-flash" aria-live="polite"></div>
                 <div id="my-plan-list"><div class="p-4 text-center">載入中...</div></div>
             </div>
@@ -1289,15 +1302,52 @@
                 }
                 return `<div class="plan-row${i === 0 ? ' is-today' : ''}" data-date="${iso}">${dateCell}${planIcon(p.kind)}
                     <div class="flex-grow-1 min-w-0">
-                        <div class="workout-type">${esc(p.title)}<span class="plan-source">${p.source === 'ai' ? 'AI' : '手動'}</span></div>
+                        <div class="workout-type">${esc(p.title)}<span class="plan-source">${p.source === 'ai' ? 'AI' : '手動'}</span>${syncIcon(p)}</div>
                         <div class="workout-details">${esc([planMeta(p), p.details].filter(Boolean).join('｜'))}</div>
                     </div>
                     <button type="button" class="btn btn-sm plan-action" onclick="openPlanModal('${iso}')" aria-label="修改 ${label.day} 的課表"><i class="fa-solid fa-pen"></i></button></div>`;
             }).join('');
+
+            const pending = myPlan.filter(p => p.sync === 'pending').length;
+            const synced = myPlan.filter(p => p.sync === 'synced').length;
+            const status = document.getElementById('plan-sync-status');
+            status.className = 'plan-sync-status mb-1' + (pending ? ' is-pending' : synced ? ' is-synced' : '');
+            status.innerHTML = pending
+                ? `<i class="fa-solid fa-rotate me-1"></i>有 ${pending} 天的課表還沒傳到手錶，按「傳到手錶」更新`
+                : synced ? '<i class="fa-solid fa-circle-check me-1"></i>課表已全部傳到手錶' : '';
         }
 
-        function flashPlan(msg) {
-            document.getElementById('plan-flash').innerHTML = msg ? `<i class="fa-solid fa-circle-check me-1"></i>${esc(msg)}` : '';
+        function syncIcon(p) {
+            if (p.sync === 'synced') return '<i class="fa-solid fa-circle-check plan-sync-icon is-synced" title="已傳到手錶" aria-label="已傳到手錶"></i>';
+            if (p.sync === 'pending') return '<i class="fa-solid fa-rotate plan-sync-icon is-pending" title="有變更，還沒傳到手錶" aria-label="有變更，還沒傳到手錶"></i>';
+            return '';
+        }
+
+        function flashPlan(msg, isError = false) {
+            const el = document.getElementById('plan-flash');
+            el.classList.toggle('is-error', isError);
+            el.innerHTML = msg ? `<i class="fa-solid ${isError ? 'fa-circle-xmark' : 'fa-circle-check'} me-1"></i>${esc(msg)}` : '';
+        }
+
+        // ---- 傳到手錶：課表 → intervals.icu → Garmin Connect → 手錶 ----
+        async function syncPlanToWatch() {
+            const btn = document.getElementById('sync-plan-btn');
+            const original = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>傳送中...';
+            try {
+                const r = await api('/api/plan/sync', { method: 'POST' });
+                await refreshPlanViews();
+                let msg = `已傳送 ${r.sent} 筆課表到 intervals.icu` + (r.removed ? `，移除 ${r.removed} 筆舊課表` : '') + '。Garmin 會自動同步接下來約 7 天的課表，請在 Garmin Connect App 同步手錶。';
+                if (r.skipped.length) msg += `（${r.skipped.map(d => planDateLabel(d).day).join('、')} 沒有距離或時間，沒有傳送）`;
+                if (r.unparsed.length) msg += `（${r.unparsed.map(d => planDateLabel(d).day).join('、')} 的內容 intervals.icu 無法解讀，請檢查）`;
+                flashPlan(msg);
+            } catch (e) {
+                flashPlan('傳送失敗：' + e.message, true);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = original;
+            }
         }
 
         async function refreshPlanViews() {
