@@ -123,6 +123,7 @@ def init_db():
                          ("hr_zones_json", "TEXT"),   # {"times": 各區間秒數, "bounds": 區間上限心率}
                          ("detail_json", "TEXT")),    # 軌跡、心率/步頻/配速曲線快取，第一次點開才抓
             "wellness": (("steps", "INTEGER"),),
+            "planned_workouts": (("synced_at", "TEXT"),),  # 最後一次傳到 intervals.icu 的時間
         }
         for table, cols in new_cols.items():
             existing = {r["name"] for r in conn.execute(f"PRAGMA table_info({table})")}
@@ -1075,10 +1076,21 @@ def save_plan_items(conn, items, plan_id=None):
               it["source"], plan_id, now))
 
 
+def plan_sync_status(r):
+    """synced＝手錶上是最新的；pending＝有變更還沒傳；none＝不需要傳（休息日或沒有內容）"""
+    up_to_date = bool(r["synced_at"]) and r["synced_at"] >= (r["created_at"] or "")
+    if up_to_date:
+        return "synced" if r["icu_event_id"] else "none"
+    if r["kind"] == "rest" and not r["icu_event_id"]:
+        return "none"
+    return "pending"
+
+
 def plan_row(r):
     return {"id": r["id"], "date": r["date"], "kind": r["kind"], "title": r["title"],
             "distance_km": r["distance_km"], "duration_min": r["duration_min"], "details": r["details"] or "",
-            "steps": json.loads(r["steps_json"]) if r["steps_json"] else None, "source": r["source"]}
+            "steps": json.loads(r["steps_json"]) if r["steps_json"] else None, "source": r["source"],
+            "sync": plan_sync_status(r)}
 
 
 def plans_between(conn, oldest, newest):
@@ -1122,9 +1134,18 @@ def save_manual_plan():
 @app.route("/api/plan/workouts/<pid>", methods=["DELETE"])
 def delete_plan(pid):
     conn = get_db()
+    row = conn.execute("SELECT icu_event_id FROM planned_workouts WHERE id = ?", (pid,)).fetchone()
     conn.execute("DELETE FROM planned_workouts WHERE id = ?", (pid,))
     conn.commit()
-    return jsonify({"deleted": pid})
+    removed = None
+    if row and row["icu_event_id"]:
+        # 已經傳到手錶的課表，順便從 intervals.icu 移除；失敗也沒關係，下次「傳到手錶」會清掉
+        try:
+            icu_request("PUT", f"/athlete/{INTERVALS_ATHLETE_ID}/events/bulk-delete", json=[{"id": int(row["icu_event_id"])}])
+            removed = True
+        except (UserFacingError, requests.RequestException, ValueError):
+            removed = False
+    return jsonify({"deleted": pid, "removed_from_watch": removed})
 
 
 @app.route("/api/plan/apply", methods=["POST"])
@@ -1139,6 +1160,107 @@ def apply_plan():
     save_plan_items(conn, items, plan_id=f"ai_{uuid.uuid4().hex[:8]}")
     conn.commit()
     return jsonify({"saved": len(items), "start": min(i["date"] for i in items), "end": max(i["date"] for i in items)})
+
+
+# ==========================================
+# 傳到手錶：課表 → intervals.icu 行事曆 → Garmin Connect → 手錶
+# ==========================================
+ICU_HEADERS = {"User-Agent": "Mozilla/5.0 (running-coach)"}  # intervals.icu 前面的 Cloudflare 會擋預設的 Python UA
+EXTERNAL_PREFIX = "runai-"  # 我們建立的行事曆課表都用這個開頭，只會更新或刪除自己建立的
+
+
+def icu_request(method, path, **kwargs):
+    if not INTERVALS_API_KEY:
+        raise UserFacingError("尚未設定 INTERVALS_API_KEY，請在 .env 填入 intervals.icu 的 API key")
+    res = requests.request(method, f"{ICU_BASE}{path}", auth=("API_KEY", INTERVALS_API_KEY),
+                           headers=ICU_HEADERS, timeout=30, **kwargs)
+    if res.status_code in (401, 403):
+        raise UserFacingError("intervals.icu 驗證失敗，請確認 API key 與 athlete ID")
+    if not res.ok:
+        raise UserFacingError(f"intervals.icu 回應錯誤（{res.status_code}）：{res.text[:120]}")
+    return res.json() if res.content else None
+
+
+def watch_amount(distance_km=None, duration_min=None):
+    """intervals.icu 課表語法：m 是分鐘，公尺要寫 mtr"""
+    if distance_km:
+        return f"{round(distance_km * 1000)}mtr" if distance_km < 1 else f"{distance_km:g}km"
+    if duration_min:
+        m, s = divmod(round(duration_min * 60), 60)
+        return f"{m}m{s}s" if m and s else f"{m}m" if m else f"{s}s"
+    return None
+
+
+def watch_label(text):
+    """步驟名稱會顯示在手錶上；拿掉數字和英文，避免被當成距離、時間或配速"""
+    return re.sub(r"[A-Za-z0-9０-９:：/%×*+.\-]", "", text or "").strip()[:12]
+
+
+def watch_step(s):
+    parts = [watch_label(s.get("label")), watch_amount(s.get("distance_km"), s.get("duration_min"))]
+    if s.get("pace"):
+        parts.append(f"{s['pace']}/km Pace")
+    elif s.get("hr_zone"):
+        parts.append(f"Z{s['hr_zone']} HR")
+    return "- " + " ".join(p for p in parts if p)
+
+
+def workout_text(p):
+    """把課表轉成 intervals.icu 的課表文字；沒有距離也沒有時間就回傳 None（手錶需要結束條件）"""
+    if p["steps"]:
+        blocks = []
+        for s in p["steps"]:
+            if "repeat" in s:
+                blocks.append(f"{s['repeat']}x\n" + "\n".join(watch_step(x) for x in s["steps"]))
+            else:
+                blocks.append(watch_step(s))
+        return "\n\n".join(blocks)
+    amount = watch_amount(p["distance_km"], p["duration_min"])
+    return f"- {watch_label(p['title']) or '跑步'} {amount}" if amount else None
+
+
+def sync_plans(conn, oldest, newest):
+    plans = plans_between(conn, oldest, newest)
+    payload, sending, skipped = [], {}, []
+    for p in plans:
+        if p["kind"] == "rest":
+            continue
+        text = workout_text(p)
+        if not text:
+            skipped.append(p["date"])
+            continue
+        ext = EXTERNAL_PREFIX + p["id"]
+        sending[ext] = p
+        payload.append({"category": "WORKOUT", "start_date_local": f"{p['date']}T00:00:00",
+                        "type": "WeightTraining" if p["kind"] == "cross" else "Run",
+                        "name": p["title"], "description": text, "external_id": ext})
+
+    ath = INTERVALS_ATHLETE_ID
+    created = icu_request("POST", f"/athlete/{ath}/events/bulk", params={"upsert": "true"}, json=payload) if payload else []
+    event_ids = {e.get("external_id"): e.get("id") for e in created or []}
+    unparsed = sorted(sending[e["external_id"]]["date"] for e in created or []
+                      if e.get("external_id") in sending and not (e.get("workout_doc") or {}).get("steps"))
+
+    # 刪掉這段期間內、我們以前傳過但現在已經不存在（刪除或改成休息）的課表
+    existing = icu_request("GET", f"/athlete/{ath}/events", params={"oldest": oldest, "newest": newest}) or []
+    stale = [{"id": e["id"]} for e in existing
+             if str(e.get("external_id") or "").startswith(EXTERNAL_PREFIX + "plan_") and e.get("external_id") not in sending]
+    if stale:
+        icu_request("PUT", f"/athlete/{ath}/events/bulk-delete", json=stale)
+
+    now = datetime.now().isoformat(timespec="seconds")
+    for p in plans:
+        event_id = event_ids.get(EXTERNAL_PREFIX + p["id"])
+        conn.execute("UPDATE planned_workouts SET icu_event_id = ?, synced_at = ? WHERE id = ?",
+                     (str(event_id) if event_id else None, now, p["id"]))
+    conn.commit()
+    return {"sent": len(event_ids), "removed": len(stale), "skipped": skipped, "unparsed": unparsed}
+
+
+@app.route("/api/plan/sync", methods=["POST"])
+def sync_plan_route():
+    today = date.today()
+    return jsonify(sync_plans(get_db(), today.isoformat(), (today + timedelta(days=PLAN_DAYS - 1)).isoformat()))
 
 
 @app.route("/api/generate-plan", methods=["POST"])
