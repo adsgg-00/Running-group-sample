@@ -2,8 +2,10 @@ import os
 import io
 import csv
 import json
+import re
 import sqlite3
 import traceback
+import uuid
 from datetime import date, datetime, timedelta
 
 import groq
@@ -91,6 +93,21 @@ def init_db():
                 sleep_quality INTEGER,             -- 1 很差 … 5 很好
                 mood          INTEGER,             -- 1 很差 … 5 很好
                 note          TEXT
+            );
+            -- 課表：每天一筆，AI 產生或手動輸入
+            CREATE TABLE IF NOT EXISTS planned_workouts (
+                id           TEXT PRIMARY KEY,
+                date         TEXT NOT NULL UNIQUE,
+                kind         TEXT NOT NULL,          -- rest / easy / recovery / long / tempo / interval / race / cross / other
+                title        TEXT,
+                distance_km  REAL,
+                duration_min REAL,
+                details      TEXT,
+                steps_json   TEXT,                   -- 結構化步驟，之後傳到手錶用
+                source       TEXT NOT NULL,          -- ai / manual
+                plan_id      TEXT,                   -- 同一次套用的 AI 課表
+                created_at   TEXT,
+                icu_event_id TEXT                    -- 傳到 intervals.icu 後的行事曆編號
             );
             CREATE TABLE IF NOT EXISTS meta (
                 key   TEXT PRIMARY KEY,
@@ -514,6 +531,7 @@ def week_summary(conn, today):
     for r in rows:
         by_day.setdefault(r["d"], []).append(r)
 
+    plans = {p["date"]: p for p in plans_between(conn, monday.isoformat(), sunday.isoformat())}
     prev_km = sum((r["distance_m"] or 0) for r in rows
                   if r["type"] in RUN_TYPES and r["d"] < monday.isoformat()) / 1000
     avg_4w = prev_km / 4
@@ -554,7 +572,7 @@ def week_summary(conn, today):
         return {"date": d.isoformat(), "label": f"{d.month}/{d.day}", "weekday": "一二三四五六日"[d.weekday()],
                 "kind": kind, "km": round(km, 1), "longest_km": round(longest, 1),
                 "titles": [r["title"] for r in items if r["title"] and not (r["type"] in RUN_TYPES and (r["distance_m"] or 0) < 500)],
-                "is_today": d == today}
+                "is_today": d == today, "plan": plans.get(d.isoformat())}
 
     days = [day_info(monday + timedelta(days=i)) for i in range(7)]
     total_km = round(sum(d["km"] for d in days), 1)
@@ -579,6 +597,7 @@ def week_summary(conn, today):
         "hard_sessions": sum(d["kind"] == "hard" for d in days),
         "longest_km": max(d["longest_km"] for d in days),
         "rest_days": sum(d["kind"] == "rest" for d in days),
+        "planned_km": round(sum(p["distance_km"] or 0 for p in plans.values()), 1),
         "flags": flags,
     }
 
@@ -951,42 +970,248 @@ def coach_today():
   "workout": "今天具體要做的內容（距離或時間、配速或心率區間）",
   "tip": "一個今天可以做的恢復或注意事項"}}
 rating：good=狀態好、ok=普通、caution=要注意。verdict：go=照原計畫、easy=降低強度、rest=休息或恢復"""
+    if not planned:
+        today_plan = plans_between(get_db(), date.today().isoformat(), date.today().isoformat())
+        if today_plan:
+            planned = "課表安排：" + plan_text(today_plan[0])
     user = build_context_text() + "\n\n今天原本預計的訓練：" + (planned or "未指定，請你建議")
     return jsonify(ask_llm(system, user, temperature=0.3))
 
 
+# ==========================================
+# 課表：AI 產生或手動輸入，每天一筆
+# ==========================================
+PLAN_KINDS = {"rest": "休息", "easy": "輕鬆跑", "recovery": "恢復跑", "long": "長距離", "tempo": "節奏跑",
+              "interval": "間歇", "race": "比賽", "cross": "交叉訓練", "other": "其他"}
+PLAN_DAYS = 14
+PACE_RE = re.compile(r"^\d{1,2}:[0-5]\d(-\d{1,2}:[0-5]\d)?$")
+WEEKDAY_CHARS = "一二三四五六日"
+
+
+def positive(value, upper):
+    try:
+        value = float(value)
+    except (TypeError, ValueError):
+        return None
+    return value if 0 < value < upper else None
+
+
+def normalize_steps(raw, depth=0):
+    """整理 AI 給的結構化步驟；格式不對的步驟直接略過"""
+    if not isinstance(raw, list):
+        return None
+    out = []
+    for s in raw[:20]:
+        if not isinstance(s, dict):
+            continue
+        if "repeat" in s:
+            try:
+                reps = int(s["repeat"])
+            except (TypeError, ValueError):
+                continue
+            inner = normalize_steps(s.get("steps"), depth + 1) if depth == 0 else None  # 只允許一層重複
+            if inner and 2 <= reps <= 30:
+                out.append({"repeat": reps, "steps": inner})
+            continue
+        dist, dur = positive(s.get("distance_km"), 100), positive(s.get("duration_min"), 600)
+        if not dist and not dur:
+            continue
+        step = {"label": str(s.get("label") or "跑步").strip()[:12]}
+        if dist:
+            step["distance_km"] = round(dist, 2)
+        else:
+            step["duration_min"] = round(dur, 1)
+        pace = str(s.get("pace") or "").replace(" ", "")
+        if PACE_RE.match(pace):
+            step["pace"] = pace
+        else:
+            try:
+                zone = int(s.get("hr_zone"))
+            except (TypeError, ValueError):
+                zone = None
+            if zone and 1 <= zone <= 5:
+                step["hr_zone"] = zone
+        out.append(step)
+    return out or None
+
+
+def normalize_plan_item(item, source):
+    if not isinstance(item, dict):
+        return None
+    try:
+        day = date.fromisoformat(str(item.get("date") or "")[:10])
+    except ValueError:
+        return None
+    kind = item.get("kind") if item.get("kind") in PLAN_KINDS else "other"
+    rest = kind == "rest"
+    dist = None if rest else positive(item.get("distance_km"), 100)
+    dur = None if rest else positive(item.get("duration_min"), 600)
+    return {
+        "date": day.isoformat(), "kind": kind,
+        "title": str(item.get("title") or "").strip()[:40] or PLAN_KINDS[kind],
+        "distance_km": round(dist, 1) if dist else None,
+        "duration_min": round(dur) if dur else None,
+        "details": str(item.get("details") or "").strip()[:300],
+        "steps": None if rest else normalize_steps(item.get("steps")),
+        "source": source,
+    }
+
+
+def save_plan_items(conn, items, plan_id=None):
+    """同一天只保留一筆，已有的就更新（編號不變，之後同步到手錶時才能更新同一筆）"""
+    now = datetime.now().isoformat(timespec="seconds")
+    for it in items:
+        conn.execute("""
+            INSERT INTO planned_workouts (id, date, kind, title, distance_km, duration_min, details, steps_json,
+                                          source, plan_id, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(date) DO UPDATE SET
+                kind=excluded.kind, title=excluded.title, distance_km=excluded.distance_km,
+                duration_min=excluded.duration_min, details=excluded.details, steps_json=excluded.steps_json,
+                source=excluded.source, plan_id=excluded.plan_id, created_at=excluded.created_at
+        """, (f"plan_{uuid.uuid4().hex[:12]}", it["date"], it["kind"], it["title"], it["distance_km"],
+              it["duration_min"], it["details"],
+              json.dumps(it["steps"], ensure_ascii=False) if it["steps"] else None,
+              it["source"], plan_id, now))
+
+
+def plan_row(r):
+    return {"id": r["id"], "date": r["date"], "kind": r["kind"], "title": r["title"],
+            "distance_km": r["distance_km"], "duration_min": r["duration_min"], "details": r["details"] or "",
+            "steps": json.loads(r["steps_json"]) if r["steps_json"] else None, "source": r["source"]}
+
+
+def plans_between(conn, oldest, newest):
+    rows = conn.execute("SELECT * FROM planned_workouts WHERE date >= ? AND date <= ? ORDER BY date",
+                        (oldest, newest)).fetchall()
+    return [plan_row(r) for r in rows]
+
+
+def plan_text(p):
+    parts = [p["title"]]
+    if p["distance_km"]:
+        parts.append(f"{p['distance_km']} km")
+    if p["duration_min"]:
+        parts.append(f"{round(p['duration_min'])} 分鐘")
+    return "，".join(parts) + (f"：{p['details']}" if p["details"] else "")
+
+
+@app.route("/api/plan", methods=["GET"])
+def list_plan():
+    today = date.today()
+    oldest = request.args.get("oldest") or today.isoformat()
+    newest = request.args.get("newest") or (today + timedelta(days=PLAN_DAYS - 1)).isoformat()
+    try:
+        date.fromisoformat(oldest), date.fromisoformat(newest)
+    except ValueError:
+        raise UserFacingError("日期格式錯誤")
+    return jsonify(plans_between(get_db(), oldest, newest))
+
+
+@app.route("/api/plan/workouts", methods=["POST"])
+def save_manual_plan():
+    item = normalize_plan_item(request.get_json(silent=True) or {}, "manual")
+    if not item:
+        raise UserFacingError("請選擇課表日期")
+    conn = get_db()
+    save_plan_items(conn, [item])
+    conn.commit()
+    return jsonify(plans_between(conn, item["date"], item["date"])[0]), 201
+
+
+@app.route("/api/plan/workouts/<pid>", methods=["DELETE"])
+def delete_plan(pid):
+    conn = get_db()
+    conn.execute("DELETE FROM planned_workouts WHERE id = ?", (pid,))
+    conn.commit()
+    return jsonify({"deleted": pid})
+
+
+@app.route("/api/plan/apply", methods=["POST"])
+def apply_plan():
+    raw = (request.get_json(silent=True) or {}).get("days")
+    if not isinstance(raw, list) or not raw or len(raw) > 31:
+        raise UserFacingError("沒有可套用的課表")
+    items = [n for n in (normalize_plan_item(x, "ai") for x in raw) if n]
+    if not items:
+        raise UserFacingError("課表格式不正確")
+    conn = get_db()
+    save_plan_items(conn, items, plan_id=f"ai_{uuid.uuid4().hex[:8]}")
+    conn.commit()
+    return jsonify({"saved": len(items), "start": min(i["date"] for i in items), "end": max(i["date"] for i in items)})
+
+
 @app.route("/api/generate-plan", methods=["POST"])
 def generate_plan():
-    req = request.get_json() or {}
-    goal_race = req.get("goalRace")
-    goal_time = req.get("goalTime")
-    selected_days = req.get("selectedDays") or []
+    """只產生預覽，使用者按「套用」才會存進課表"""
+    req = request.get_json(silent=True) or {}
+    goal_race = req.get("goalRace") or "強身健體"
+    goal_time = req.get("goalTime") or "未指定"
+    selected = set(req.get("selectedDays") or [])
+    if not selected:
+        raise UserFacingError("請至少選擇一個訓練日")
+    try:
+        start = date.fromisoformat(str(req.get("startDate") or ""))
+    except ValueError:
+        start = date.today() + timedelta(days=1)
+    dates = [start + timedelta(days=i) for i in range(PLAN_DAYS)]
 
-    system = f"""你是專業的馬拉松教練，用繁體中文回答。你會根據跑者「目前真實的訓練狀態」排課表，而不是套用通用模板。
+    def trainable(d):
+        return f"週{WEEKDAY_CHARS[d.weekday()]}" in selected
+
+    calendar = "\n".join(f"{d.isoformat()}（週{WEEKDAY_CHARS[d.weekday()]}）：{'可訓練' if trainable(d) else '休息日'}"
+                         for d in dates)
+
+    system = f"""你是專業的跑步教練，用繁體中文回答。你會根據跑者「目前真實的訓練狀態」排課表，而不是套用通用模板。
 {COACH_RULES}
-只回傳 JSON 物件，格式：
-{{"weeks": [
-  {{"week": 1, "totalKm": 35, "workouts": [
-    {{"day": "週一", "type": "休息", "details": "恢復日", "icon": "fa-bed", "iconBg": "rgba(142, 142, 147, 0.2)"}},
-    {{"day": "週二", "type": "輕鬆跑", "details": "8 km @ 6'20\\"", "icon": "fa-person-running", "iconBg": "rgba(50, 215, 75, 0.2)"}},
-    {{"day": "週三", "type": "間歇", "details": "800m x 6，恢復 90 秒", "icon": "fa-stopwatch", "iconBg": "rgba(191, 90, 242, 0.2)"}},
-    {{"day": "週日", "type": "長距離", "details": "LSD 16 km", "icon": "fa-route", "iconBg": "rgba(255, 159, 10, 0.2)"}}
-  ]}}
+請為使用者列出的每一個日期各排一筆課表，只回傳 JSON 物件，格式：
+{{"days": [
+  {{"date": "2026-11-20", "kind": "easy", "title": "輕鬆跑", "distance_km": 8, "duration_min": 52,
+    "details": "8 km 輕鬆跑，配速 6:20-6:40/km，心率維持 Z2",
+    "steps": [{{"label": "輕鬆跑", "distance_km": 8, "hr_zone": 2}}]}},
+  {{"date": "2026-11-21", "kind": "interval", "title": "800m 間歇", "distance_km": 8.6, "duration_min": 50,
+    "details": "暖身 2 km、800m × 6 配速 4:25-4:35、每趟間慢跑 400m、緩和 2 km",
+    "steps": [{{"label": "暖身", "distance_km": 2, "hr_zone": 2}},
+              {{"repeat": 6, "steps": [{{"label": "快跑", "distance_km": 0.8, "pace": "4:25-4:35"}},
+                                       {{"label": "恢復", "distance_km": 0.4, "hr_zone": 1}}]}},
+              {{"label": "緩和", "distance_km": 2, "hr_zone": 1}}]}},
+  {{"date": "2026-11-22", "kind": "rest", "title": "休息", "details": "完全休息或輕度伸展", "steps": []}}
 ]}}
-規則：共 2 週、每週七天都要列出、未選的訓練日一律「休息」；icon 與 iconBg 依範例配對（休息 fa-bed、輕鬆跑 fa-person-running、間歇/節奏 fa-stopwatch、長距離 fa-route）。
-details 要具體，配速要依據跑者近期實際配速推算。"""
-    user = f"""目標賽事：{goal_race}
+規則：
+- kind 只能是 rest、easy、recovery、long、tempo、interval、race、cross 其中之一。
+- 每一個列出的日期都要剛好一筆；標示「休息日」的日期一律 kind 為 rest。
+- 每一步要有 distance_km 或 duration_min；強度用 pace（每公里配速，寫成 "分:秒-分:秒"）或 hr_zone（1–5）擇一。
+- repeat 只能用在最外層，裡面放每一趟的步驟。
+- distance_km、duration_min 是整堂課的總量；details 用一句話寫清楚內容。
+- 配速要依據跑者近期實際配速推算，跑量循序漸進，遵守上面的判斷原則。"""
+    user = f"""目標：{goal_race}
 期望：{goal_time}
-可訓練日：{', '.join(selected_days)}
+
+要排的日期：
+{calendar}
 
 以下是跑者目前的數據：
 {build_context_text()}"""
 
     result = ask_llm(system, user, temperature=0.2)
-    plan = result.get("weeks") if isinstance(result, dict) else result
-    if not isinstance(plan, list):
+    raw_days = result.get("days") if isinstance(result, dict) else None
+    if not isinstance(raw_days, list):
         raise UserFacingError("AI 回傳的課表格式不正確，請再試一次")
-    return jsonify(plan)
+    by_date = {}
+    for item in raw_days:
+        n = normalize_plan_item(item, "ai")
+        if n:
+            by_date.setdefault(n["date"], n)
+
+    days = []
+    for d in dates:
+        item = by_date.get(d.isoformat())
+        if not trainable(d):  # 使用者說不能練的日子，一律休息
+            item = normalize_plan_item({"date": d.isoformat(), "kind": "rest", "details": "休息日"}, "ai")
+        elif not item:
+            item = normalize_plan_item({"date": d.isoformat(), "kind": "rest", "details": "AI 沒有安排，可自行補上"}, "ai")
+        days.append(item)
+    return jsonify({"start": dates[0].isoformat(), "end": dates[-1].isoformat(), "days": days})
 
 
 @app.route("/api/health", methods=["GET"])

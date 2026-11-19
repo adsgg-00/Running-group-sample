@@ -71,6 +71,28 @@
         .week-flags { margin-top: 10px; font-size: 0.85rem; font-weight: 600; }
         .week-flags .flag-warn { color: var(--r-orange); }
         .week-flags .flag-ok { color: var(--r-green); }
+        .week-chip.is-planned { background: transparent; border-style: dashed; opacity: 0.85; }
+        .week-km.is-planned { opacity: 0.6; }
+
+        /* 我的課表 */
+        .plan-hint { font-size: 0.85rem; opacity: 0.7; }
+        .plan-flash { min-height: 1.2em; margin-bottom: 8px; color: var(--r-green); font-size: 0.85rem; font-weight: 600; }
+        .plan-row { display: flex; align-items: center; gap: 14px; padding: 12px 8px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .plan-row:last-child { border-bottom: none; }
+        .plan-row.is-today { background: rgba(191, 90, 242, 0.08); border-radius: 12px; }
+        .plan-date { flex: none; width: 52px; text-align: center; }
+        .plan-weekday { font-size: 0.75rem; font-weight: 700; opacity: 0.75; }
+        .plan-day { font-size: 1.05rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+        .plan-row .workout-icon { flex: none; }
+        .plan-row .workout-details { overflow-wrap: anywhere; }
+        .plan-empty { font-weight: 600; opacity: 0.45; }
+        .plan-source { margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: rgba(255,255,255,0.1); font-size: 0.7rem; font-weight: 700; vertical-align: middle; }
+        .plan-action { flex: none; padding: 4px 12px; color: #fff; border: 1px solid rgba(255,255,255,0.15); border-radius: 999px; }
+        .plan-action:hover, .plan-action:focus-visible { color: #fff; background: rgba(255,255,255,0.1); }
+        .plan-conflict { color: var(--r-orange); font-size: 0.85rem; font-weight: 600; }
+        .plan-modal-error { min-height: 1.2em; color: #ff453a; font-size: 0.85rem; font-weight: 600; }
+        .min-w-0 { min-width: 0; }
+        input[type="date"] { color-scheme: dark; }
         .modal-content-dark { background-color: var(--card-dark); color: var(--text-main); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; }
         .form-control, .form-select, .form-control-dark { background-color: rgba(255,255,255,0.06) !important; border: 1px solid rgba(255,255,255,0.12) !important; color: #ffffff !important; border-radius: 12px !important; padding: 12px 15px !important; }
         .form-control:focus, .form-select:focus { background-color: rgba(255,255,255,0.1) !important; color: #ffffff !important; border-color: var(--r-purple) !important; box-shadow: 0 0 0 4px rgba(191, 90, 242, 0.2) !important; }
@@ -86,7 +108,7 @@
         .day-checkbox:checked + .day-label { background-color: var(--r-purple); color: white; border-color: var(--r-purple); box-shadow: 0 4px 12px rgba(191, 90, 242, 0.3); }
         .week-card { background-color: var(--card-dark); border-radius: 20px; padding: 24px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 20px;}
         .week-header { font-size: 1.3rem; font-weight: 800; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .daily-workout { display: grid; grid-template-columns: 50px 1fr; gap: 20px; align-items: center; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .daily-workout { display: grid; grid-template-columns: 76px 1fr; gap: 20px; align-items: center; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .daily-workout:last-child { border-bottom: none; }
         .day-name { font-size: 0.85rem; color: var(--text-muted); font-weight: bold; }
         .workout-type { font-weight: 700; font-size: 1.1rem; margin-bottom: 2px;}
@@ -358,7 +380,7 @@
                             </div>
                         </div>
                         <div class="week-grid" id="week-grid"></div>
-                        <div class="week-legend"><span>輕＝輕鬆</span><span>中＝中強度</span><span>強＝高強度</span><span>長＝長距離</span><span>跑＝無心率資料</span><span>交＝交叉訓練</span><span>休＝休息</span></div>
+                        <div class="week-legend"><span>輕＝輕鬆</span><span>中＝中強度</span><span>強＝高強度</span><span>長＝長距離</span><span>跑＝無心率資料</span><span>交＝交叉訓練</span><span>休＝休息</span><span>虛線＝計畫</span></div>
                         <div class="week-stats" id="week-stats"></div>
                         <div class="week-flags" id="week-flags" aria-live="polite"></div>
                     </div>
@@ -385,19 +407,31 @@
         <!-- 頁籤 2：專屬課表 -->
         <!-- ========================================== -->
         <div id="tab-schedule" class="tab-pane">
+            <div class="r-card" id="my-plan-card">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-1">
+                    <h4 class="fw-bold mb-0"><i class="fa-solid fa-calendar-check me-2" style="color: var(--r-purple);"></i>我的課表</h4>
+                    <button type="button" class="btn btn-outline-light rounded-pill px-4 fw-bold" onclick="openPlanModal()">
+                        <i class="fa-solid fa-plus me-2"></i>新增課表
+                    </button>
+                </div>
+                <p class="plan-hint mb-2">接下來 14 天，每天一筆。點任一天就能新增或修改，AI 產生的課表套用後也會出現在這裡。</p>
+                <div class="plan-flash" id="plan-flash" aria-live="polite"></div>
+                <div id="my-plan-list"><div class="p-4 text-center">載入中...</div></div>
+            </div>
+
             <div id="plan-generator-ui">
                 <div class="r-card p-4 p-md-5">
                     <div class="text-center mb-5">
                         <i class="fa-solid fa-wand-magic-sparkles fa-3x mb-3" style="color: var(--r-purple);"></i>
-                        <h2 class="fw-bold">AI 智慧訓練計畫生成器</h2>
-                        <p class="text-muted">會先讀取你近 4 週的跑量、負荷與恢復狀態，再排出接下來 2 週的課表。</p>
+                        <h2 class="fw-bold">AI 產生課表</h2>
+                        <p class="text-muted">會先讀取你近 4 週的跑量、負荷與恢復狀態，再排出 2 週的課表。預覽沒問題再套用到「我的課表」。</p>
                     </div>
 
-                    <form id="plan-request-form">
+                    <form id="plan-request-form" onsubmit="return false;">
                         <div class="ai-form-box mb-4">
                             <div class="row g-4">
-                                <div class="col-md-6" id="goal-container">
-                                    <label class="form-label fw-bold"><i class="fa-solid fa-bullseye me-2 text-info"></i>主要目標</label>
+                                <div class="col-md-4" id="goal-container">
+                                    <label class="form-label fw-bold" for="goal-race"><i class="fa-solid fa-bullseye me-2 text-info"></i>主要目標</label>
                                     <select id="goal-race" class="form-select">
                                         <option value="stay-fit">強身健體</option>
                                         <option value="3k">3K 挑戰</option>
@@ -408,9 +442,13 @@
                                         <option value="full-marathon" selected>全程馬拉松</option>
                                     </select>
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold"><i class="fa-regular fa-clock me-2 text-info"></i>期望完賽時間 / 跑步目標描述</label>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold" for="goal-time"><i class="fa-regular fa-clock me-2 text-info"></i>期望完賽時間 / 跑步目標</label>
                                     <input type="text" id="goal-time" class="form-control" placeholder="例如：4小時內、無痛完賽" value="4小時內">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold" for="plan-start"><i class="fa-regular fa-calendar me-2 text-info"></i>開始日期</label>
+                                    <input type="date" id="plan-start" class="form-control">
                                 </div>
                             </div>
                         </div>
@@ -424,7 +462,7 @@
 
                         <div class="text-center mt-5">
                             <button type="button" class="btn btn-gradient-purple btn-lg px-5 py-3 fs-5" onclick="triggerPlanGeneration()">
-                                <i class="fa-solid fa-wand-magic-sparkles me-2"></i>生成個人專屬計畫
+                                <i class="fa-solid fa-wand-magic-sparkles me-2"></i>產生兩週課表
                             </button>
                         </div>
                     </form>
@@ -432,15 +470,21 @@
             </div>
 
             <div id="plan-display-ui" style="display: none;">
-                <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
                     <div>
-                        <h2 class="fw-bold" id="plan-title"></h2>
-                        <p class="text-muted" id="plan-subtitle"></p>
+                        <h2 class="fw-bold mb-1" id="plan-title"></h2>
+                        <p class="text-muted mb-0" id="plan-subtitle"></p>
                     </div>
-                    <button class="btn btn-outline-secondary rounded-pill" onclick="resetGenerator()">
-                        <i class="fa-solid fa-arrow-rotate-left me-2"></i>重新設定
-                    </button>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="button" class="btn btn-outline-secondary rounded-pill" onclick="resetGenerator()">
+                            <i class="fa-solid fa-arrow-rotate-left me-2"></i>重新設定
+                        </button>
+                        <button type="button" class="btn btn-gradient-purple px-4" id="apply-plan-btn" onclick="applyAiPlan()">
+                            <i class="fa-solid fa-calendar-plus me-2"></i>套用到我的課表
+                        </button>
+                    </div>
                 </div>
+                <div class="plan-conflict mb-3" id="plan-conflict"></div>
                 <div id="plan-visualization" class="d-flex flex-column gap-4"></div>
             </div>
         </div>
@@ -498,6 +542,37 @@
     </main>
 
     <!-- 模態框視窗 -->
+    <div class="modal fade" id="planModal" tabindex="-1" aria-hidden="true" aria-labelledby="planModalTitle">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-content-dark shadow-lg">
+                <div class="modal-header border-bottom border-secondary">
+                    <h5 class="modal-title fw-bold" id="planModalTitle">新增課表</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="關閉"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="planForm" onsubmit="savePlanModal(); return false;">
+                        <div class="row">
+                            <div class="col-6 mb-3"><label class="form-label text-white small fw-bold" for="plan-date">日期</label><input type="date" class="form-control" id="plan-date" required></div>
+                            <div class="col-6 mb-3"><label class="form-label text-white small fw-bold" for="plan-kind">類型</label><select class="form-select" id="plan-kind" onchange="syncPlanKind()"></select></div>
+                        </div>
+                        <div class="mb-3"><label class="form-label text-white small fw-bold" for="plan-title-input">標題（可留空）</label><input type="text" class="form-control" id="plan-title-input" maxlength="40" placeholder="例如：800m 間歇"></div>
+                        <div class="row" id="plan-amount-row">
+                            <div class="col-6 mb-3"><label class="form-label text-white small fw-bold" for="plan-distance">距離 (KM)</label><input type="number" step="0.1" min="0" class="form-control" id="plan-distance" placeholder="例如：8"></div>
+                            <div class="col-6 mb-3"><label class="form-label text-white small fw-bold" for="plan-duration">時間 (分鐘)</label><input type="number" step="1" min="0" class="form-control" id="plan-duration" placeholder="例如：50"></div>
+                        </div>
+                        <div class="mb-2"><label class="form-label text-white small fw-bold" for="plan-details">內容說明</label><textarea class="form-control" id="plan-details" rows="3" maxlength="300" placeholder="例如：暖身 2 km、800m × 6 配速 4:30、每趟休息 90 秒、緩和 2 km"></textarea></div>
+                        <div class="plan-modal-error" id="plan-modal-error" role="alert"></div>
+                    </form>
+                </div>
+                <div class="modal-footer border-top border-secondary">
+                    <button type="button" class="btn btn-outline-danger rounded-pill me-auto" id="plan-delete-btn" onclick="deletePlanFromModal()"><i class="fa-solid fa-trash me-2"></i>刪除</button>
+                    <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-r-primary px-4" onclick="savePlanModal()">儲存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="modal fade" id="addRunModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content modal-content-dark shadow-lg">
@@ -831,17 +906,30 @@
             const total = document.getElementById('week-total');
             total.innerText = `${w.total_km} km`;
             total.classList.toggle('is-over', w.over);
-            document.getElementById('week-avg').innerText = w.avg_4w > 0 ? `前 4 週平均 ${w.avg_4w} km` : '前 4 週沒有資料';
+            const avg = w.avg_4w > 0 ? `前 4 週平均 ${w.avg_4w} km` : '前 4 週沒有資料';
+            document.getElementById('week-avg').innerText = w.planned_km > 0 ? `${avg} · 計畫 ${w.planned_km} km` : avg;
 
             document.getElementById('week-grid').innerHTML = w.days.map(d => {
-                const [mark, name] = WEEK_KINDS[d.kind] || ['?', d.kind];
-                const detail = `${d.label} 週${d.weekday}：${name}` + (d.km > 0 ? `，${d.km} km` : '') + (d.titles.length ? `（${d.titles.join('、')}）` : '');
+                const plan = d.plan;
+                const showPlan = plan && (d.kind === 'today' || d.kind === 'future');   // 還沒練的日子顯示計畫
+                const kind = showPlan ? (PLAN_KINDS[plan.kind] || PLAN_KINDS.other).week : d.kind;
+                const [mark, name] = WEEK_KINDS[kind] || ['?', kind];
+                const planText = plan ? `；計畫：${plan.title}${plan.distance_km ? ` ${plan.distance_km} km` : ''}` : '';
+                const status = showPlan ? (d.kind === 'today' ? '今天還沒有訓練' : '還沒到') : name;
+                const detail = `${d.label} 週${d.weekday}：${status}` + (d.km > 0 ? `，${d.km} km` : '') + (d.titles.length ? `（${d.titles.join('、')}）` : '') + planText;
+                const km = showPlan ? (plan.distance_km || '') : (d.km > 0 ? d.km : '');
                 return `<div class="week-day${d.is_today ? ' is-today' : ''}" title="${esc(detail)}" role="img" aria-label="${esc(detail)}">
                     <div class="week-day-name">${d.weekday}</div>
-                    <div class="week-chip kind-${esc(d.kind)}">${mark}</div>
-                    <div class="week-km">${d.km > 0 ? d.km : ''}</div>
+                    <div class="week-chip kind-${esc(kind)}${showPlan ? ' is-planned' : ''}">${mark}</div>
+                    <div class="week-km${showPlan ? ' is-planned' : ''}">${km}</div>
                 </div>`;
             }).join('');
+
+            // 今日建議：今天有課表時，留空就以課表為準
+            const todayPlan = (w.days.find(d => d.is_today) || {}).plan;
+            document.getElementById('planned-today').placeholder = todayPlan
+                ? `今天的課表：${todayPlan.title}${todayPlan.distance_km ? ` ${todayPlan.distance_km} km` : ''}（留空就以課表為準）`
+                : '今天原本預計練什麼？可留空，例如：間歇 800m x 6';
 
             document.getElementById('week-stats').innerHTML = [
                 `強度課 ${w.hard_sessions} 次`,
@@ -875,6 +963,7 @@
             checkAchievements();
 
             renderStatus(status);
+            loadMyPlan().catch(e => console.warn('課表載入失敗', e));
             return status;
         }
 
@@ -1148,55 +1237,222 @@
         }
 
         // ==========================================
-        // 7. AI 課表生成（後端會自動帶入你的訓練數據）
+        // 7. 課表：我的課表（手動輸入）＋ AI 產生（預覽後套用）
         // ==========================================
+        const PLAN_KINDS = {
+            rest: { name: '休息', icon: 'fa-bed', color: '#8e8e93', week: 'rest' },
+            easy: { name: '輕鬆跑', icon: 'fa-person-running', color: '#32d74b', week: 'easy' },
+            recovery: { name: '恢復跑', icon: 'fa-person-walking', color: '#32d74b', week: 'easy' },
+            long: { name: '長距離', icon: 'fa-route', color: '#ff9f0a', week: 'long' },
+            tempo: { name: '節奏跑', icon: 'fa-gauge-high', color: '#ffd60a', week: 'moderate' },
+            interval: { name: '間歇', icon: 'fa-stopwatch', color: '#ff453a', week: 'hard' },
+            race: { name: '比賽', icon: 'fa-flag-checkered', color: '#ff453a', week: 'hard' },
+            cross: { name: '交叉訓練', icon: 'fa-dumbbell', color: '#64d2ff', week: 'cross' },
+            other: { name: '其他', icon: 'fa-person-running', color: '#ffffff', week: 'run' },
+        };
         const daysOfWeek = [{ id: 'mon', name: '週一' }, { id: 'tue', name: '週二' }, { id: 'wed', name: '週三' }, { id: 'thu', name: '週四' }, { id: 'fri', name: '週五' }, { id: 'sat', name: '週六' }, { id: 'sun', name: '週日' }];
         document.getElementById('training-days').innerHTML = daysOfWeek.map(day => `<div><input type="checkbox" class="day-checkbox" id="day-${day.id}" value="${day.id}"><label class="day-label" for="day-${day.id}">${day.name}</label></div>`).join('');
         ['tue', 'thu', 'sat', 'sun'].forEach(id => { document.getElementById(`day-${id}`).checked = true; });
+        document.getElementById('plan-kind').innerHTML = Object.entries(PLAN_KINDS).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join('');
 
-        async function generateGroqPlan() {
+        const isoDate = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+        const todayDate = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+        function planDateLabel(iso) {
+            const [y, m, d] = iso.split('-').map(Number);
+            return { day: `${m}/${d}`, weekday: `週${'日一二三四五六'[new Date(y, m - 1, d).getDay()]}` };
+        }
+        function planMeta(p) { return [p.distance_km ? `${p.distance_km} km` : '', p.duration_min ? `${p.duration_min} 分鐘` : ''].filter(Boolean).join(' · '); }
+        function planIcon(kind) {
+            const k = PLAN_KINDS[kind] || PLAN_KINDS.other;
+            return `<div class="workout-icon" style="background-color: ${k.color}33;"><i class="fa-solid ${k.icon}" style="color: ${k.color};"></i></div>`;
+        }
+        document.getElementById('plan-start').value = isoDate(addDays(todayDate(), 1));
+
+        // ---- 我的課表 ----
+        let myPlan = [];
+        async function loadMyPlan() {
+            const start = todayDate();
+            myPlan = await api(`/api/plan?oldest=${isoDate(start)}&newest=${isoDate(addDays(start, 13))}`);
+            renderMyPlan();
+        }
+
+        function renderMyPlan() {
+            const byDate = Object.fromEntries(myPlan.map(p => [p.date, p]));
+            const start = todayDate();
+            document.getElementById('my-plan-list').innerHTML = Array.from({ length: 14 }, (_, i) => {
+                const iso = isoDate(addDays(start, i)), label = planDateLabel(iso), p = byDate[iso];
+                const dateCell = `<div class="plan-date"><div class="plan-weekday">${i === 0 ? '今天' : label.weekday}</div><div class="plan-day">${label.day}</div></div>`;
+                if (!p) {
+                    return `<div class="plan-row${i === 0 ? ' is-today' : ''}" data-date="${iso}">${dateCell}<div class="flex-grow-1 plan-empty">未安排</div>
+                        <button type="button" class="btn btn-sm plan-action" onclick="openPlanModal('${iso}')" aria-label="新增 ${label.day} 的課表"><i class="fa-solid fa-plus me-1"></i>新增</button></div>`;
+                }
+                return `<div class="plan-row${i === 0 ? ' is-today' : ''}" data-date="${iso}">${dateCell}${planIcon(p.kind)}
+                    <div class="flex-grow-1 min-w-0">
+                        <div class="workout-type">${esc(p.title)}<span class="plan-source">${p.source === 'ai' ? 'AI' : '手動'}</span></div>
+                        <div class="workout-details">${esc([planMeta(p), p.details].filter(Boolean).join('｜'))}</div>
+                    </div>
+                    <button type="button" class="btn btn-sm plan-action" onclick="openPlanModal('${iso}')" aria-label="修改 ${label.day} 的課表"><i class="fa-solid fa-pen"></i></button></div>`;
+            }).join('');
+        }
+
+        function flashPlan(msg) {
+            document.getElementById('plan-flash').innerHTML = msg ? `<i class="fa-solid fa-circle-check me-1"></i>${esc(msg)}` : '';
+        }
+
+        async function refreshPlanViews() {
+            await loadMyPlan();
+            const stats = await api('/api/stats');
+            renderWeek(stats.week);
+        }
+
+        // ---- 手動輸入 ----
+        let editingPlan = null;
+        function syncPlanKind() {
+            document.getElementById('plan-amount-row').style.display = document.getElementById('plan-kind').value === 'rest' ? 'none' : '';
+        }
+
+        function openPlanModal(iso) {
+            const day = iso || isoDate(addDays(todayDate(), 1));
+            editingPlan = myPlan.find(p => p.date === day) || null;
+            const p = editingPlan || { kind: 'easy', title: '', distance_km: null, duration_min: null, details: '' };
+            document.getElementById('planModalTitle').innerText = editingPlan ? '修改課表' : '新增課表';
+            document.getElementById('plan-date').value = day;
+            document.getElementById('plan-kind').value = p.kind in PLAN_KINDS ? p.kind : 'other';
+            document.getElementById('plan-title-input').value = editingPlan ? p.title : '';
+            document.getElementById('plan-distance').value = p.distance_km ?? '';
+            document.getElementById('plan-duration').value = p.duration_min ?? '';
+            document.getElementById('plan-details').value = p.details || '';
+            document.getElementById('plan-delete-btn').style.display = editingPlan ? '' : 'none';
+            document.getElementById('plan-modal-error').innerText = '';
+            syncPlanKind();
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('planModal')).show();
+        }
+
+        async function savePlanModal() {
+            const day = document.getElementById('plan-date').value;
+            const err = document.getElementById('plan-modal-error');
+            if (!day) { err.innerText = '請選擇日期'; return; }
+            const kind = document.getElementById('plan-kind').value;
+            const num = id => { const v = parseFloat(document.getElementById(id).value); return Number.isFinite(v) && v > 0 ? v : null; };
+            const body = {
+                date: day, kind, title: document.getElementById('plan-title-input').value.trim(),
+                distance_km: kind === 'rest' ? null : num('plan-distance'),
+                duration_min: kind === 'rest' ? null : num('plan-duration'),
+                details: document.getElementById('plan-details').value.trim(),
+            };
+            const replacing = myPlan.find(p => p.date === day && (!editingPlan || p.id !== editingPlan.id));
+            if (replacing && !confirm(`${planDateLabel(day).day} 已經有「${replacing.title}」，要用這筆取代嗎？`)) return;
+            try {
+                await api('/api/plan/workouts', { method: 'POST', body: JSON.stringify(body) });
+                if (editingPlan && editingPlan.date !== day) {   // 改了日期：移除原本那天的課表
+                    await api(`/api/plan/workouts/${encodeURIComponent(editingPlan.id)}`, { method: 'DELETE' });
+                }
+                bootstrap.Modal.getInstance(document.getElementById('planModal')).hide();
+                await refreshPlanViews();
+                flashPlan(`已儲存 ${planDateLabel(day).day} 的課表`);
+            } catch (e) {
+                err.innerText = '儲存失敗：' + e.message;
+            }
+        }
+
+        async function deletePlanFromModal() {
+            if (!editingPlan || !confirm(`要刪除 ${planDateLabel(editingPlan.date).day} 的「${editingPlan.title}」嗎？`)) return;
+            const label = planDateLabel(editingPlan.date).day;
+            try {
+                await api(`/api/plan/workouts/${encodeURIComponent(editingPlan.id)}`, { method: 'DELETE' });
+                bootstrap.Modal.getInstance(document.getElementById('planModal')).hide();
+                await refreshPlanViews();
+                flashPlan(`已刪除 ${label} 的課表`);
+            } catch (e) {
+                document.getElementById('plan-modal-error').innerText = '刪除失敗：' + e.message;
+            }
+        }
+
+        // ---- AI 產生（先預覽，按「套用」才存） ----
+        let aiPreview = null;
+        async function generatePlan() {
             const goalRaceEl = document.getElementById('goal-race');
             const goalRace = goalRaceEl.options[goalRaceEl.selectedIndex].text;
             const goalTime = document.getElementById('goal-time').value;
+            const startDate = document.getElementById('plan-start').value;
             const selectedDays = Array.from(document.querySelectorAll('#training-days input:checked'))
                 .map(el => daysOfWeek.find(d => d.id === el.value).name);
 
             if (!goalTime.trim()) { alert('請輸入您的目標完賽時間！'); return; }
+            if (!startDate) { alert('請選擇開始日期！'); return; }
             if (selectedDays.length < 3) { alert('請至少選擇 3 個訓練日！'); return; }
 
-            showLoading('AI 正在依據你的數據排課表...', '參考近 4 週跑量、負荷與恢復狀態');
+            showLoading('AI 正在依據你的數據排課表...', '參考近 4 週跑量、負荷與恢復狀態，約需 10–30 秒');
             try {
-                const plan = await api('/api/generate-plan', {
+                aiPreview = await api('/api/generate-plan', {
                     method: 'POST',
-                    body: JSON.stringify({ goalRace, goalTime, selectedDays })
+                    body: JSON.stringify({ goalRace, goalTime, selectedDays, startDate })
                 });
-                renderPlanHTML(plan, `${goalRace} 兩週課表`, `目標：${goalTime}（已參考你近 4 週的訓練數據）`);
+                await renderPreview(`${goalRace} 兩週課表`, `目標：${goalTime}（已參考你近 4 週的訓練數據）`);
             } catch (error) {
-                alert('課表生成失敗：' + error.message + '\n\n請確認 app.py 有在 Port 5000 執行。');
+                alert('課表產生失敗：' + error.message + '\n\n請確認 app.py 有在 Port 5000 執行。');
             } finally {
                 hideLoading();
             }
         }
 
-        function triggerPlanGeneration() { generateGroqPlan(); }
+        function triggerPlanGeneration() { generatePlan(); }
 
-        function renderPlanHTML(plan, title, subtitle) {
-            document.getElementById('plan-title').innerText = title; document.getElementById('plan-subtitle').innerText = subtitle;
-            const container = document.getElementById('plan-visualization');
-            container.innerHTML = plan.map(weekData => `
-                <div class="week-card animate__animated animate__fadeInUp">
-                    <div class="week-header">第 ${esc(weekData.week)} 週<span class="float-end text-muted small fw-normal">預估週跑量: ~${esc(weekData.totalKm)} KM</span></div>
-                    <div class="week-body">${(weekData.workouts || []).map(w => `
-                        <div class="daily-workout">
-                            <div><div class="day-name">${esc(w.day)}</div><div class="workout-icon" style="background-color: ${esc(w.iconBg)};"><i class="fa-solid ${esc(w.icon)}"></i></div></div>
-                            <div><div class="workout-type">${esc(w.type)}</div><div class="workout-details">${esc(w.details)}</div></div>
-                        </div>`).join('')}
-                    </div>
-                </div>`).join('');
-            document.getElementById('plan-generator-ui').style.display = 'none'; document.getElementById('plan-display-ui').style.display = 'block';
+        async function renderPreview(title, subtitle) {
+            const days = aiPreview.days;
+            document.getElementById('plan-title').innerText = title;
+            document.getElementById('plan-subtitle').innerText = subtitle;
+            const weeks = [];
+            for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7));
+            document.getElementById('plan-visualization').innerHTML = weeks.map((w, wi) => {
+                const km = Math.round(w.reduce((s, p) => s + (p.distance_km || 0), 0) * 10) / 10;
+                return `<div class="week-card animate__animated animate__fadeInUp">
+                    <div class="week-header">第 ${wi + 1} 週（${planDateLabel(w[0].date).day}–${planDateLabel(w[w.length - 1].date).day}）<span class="float-end text-muted small fw-normal">預估跑量 ~${km} KM</span></div>
+                    <div class="week-body">${w.map(p => {
+                        const l = planDateLabel(p.date);
+                        return `<div class="daily-workout">
+                            <div><div class="day-name">${l.day} ${l.weekday}</div>${planIcon(p.kind)}</div>
+                            <div><div class="workout-type">${esc(p.title)}</div><div class="workout-details">${esc([planMeta(p), p.details].filter(Boolean).join('｜'))}</div></div>
+                        </div>`;
+                    }).join('')}</div>
+                </div>`;
+            }).join('');
+
+            // 套用會取代同一段日期已有的課表，先提醒
+            let existing = [];
+            try { existing = await api(`/api/plan?oldest=${days[0].date}&newest=${days[days.length - 1].date}`); } catch (_) { /* 只影響提醒 */ }
+            document.getElementById('plan-conflict').innerHTML = existing.length
+                ? `<i class="fa-solid fa-triangle-exclamation me-1"></i>套用後會取代 ${planDateLabel(days[0].date).day}–${planDateLabel(days[days.length - 1].date).day} 已有的 ${existing.length} 筆課表（包含手動輸入的）。`
+                : '';
+
+            document.getElementById('plan-generator-ui').style.display = 'none';
+            document.getElementById('plan-display-ui').style.display = 'block';
             document.getElementById('plan-display-ui').scrollIntoView({ behavior: 'smooth' });
         }
-        function resetGenerator() { document.getElementById('plan-display-ui').style.display = 'none'; document.getElementById('plan-generator-ui').style.display = 'block'; }
+
+        async function applyAiPlan() {
+            if (!aiPreview) return;
+            const btn = document.getElementById('apply-plan-btn');
+            btn.disabled = true;
+            try {
+                const r = await api('/api/plan/apply', { method: 'POST', body: JSON.stringify({ days: aiPreview.days }) });
+                resetGenerator();
+                await refreshPlanViews();
+                flashPlan(`已套用 AI 課表：${planDateLabel(r.start).day}–${planDateLabel(r.end).day}，共 ${r.saved} 天`);
+                const card = document.getElementById('my-plan-card');
+                window.scrollTo({ top: card.getBoundingClientRect().top + window.scrollY - 80, behavior: 'smooth' });
+            } catch (e) {
+                alert('套用失敗：' + e.message);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function resetGenerator() {
+            document.getElementById('plan-display-ui').style.display = 'none';
+            document.getElementById('plan-generator-ui').style.display = 'block';
+        }
 
         // ==========================================
         // 8. 開啟網頁時：先讀資料庫，超過 6 小時沒同步就自動在背景同步
