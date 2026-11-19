@@ -115,6 +115,11 @@
         .verdict-go { background: var(--r-green); }
         .verdict-easy { background: var(--r-orange); }
         .verdict-rest { background: #ff453a; color: #fff; }
+        .checkin-status { font-size: 0.85rem; font-weight: 600; }
+        .checkin-ok { color: var(--r-green); }
+        .checkin-warn { color: var(--r-orange); }
+        .checkin-error { color: #ff453a; }
+        .checkin-muted { opacity: 0.7; }
         @media (max-width: 576px) { .scale-end { display: none; } .readiness-grid { gap: 10px; } .metric-value { font-size: 1.3rem; } }
 
         /* 活動分析 */
@@ -303,6 +308,12 @@
                         <div class="small mt-2" id="m-steps"></div>
                         <h6 class="fw-bold mt-3 mb-2">今天感覺如何？</h6>
                         <div id="checkin-rows"></div>
+                        <div class="d-flex align-items-center flex-wrap gap-3 mt-3">
+                            <button type="button" class="btn btn-outline-light rounded-pill px-4 fw-bold" id="save-checkin-btn" onclick="saveCheckin()">
+                                <i class="fa-solid fa-floppy-disk me-2"></i>儲存今天感覺
+                            </button>
+                            <span class="checkin-status" id="checkin-status" aria-live="polite"></span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -945,12 +956,54 @@
                 ? '<i class="fa-solid fa-circle-check" style="color: var(--r-green);"></i> Garmin 已同步'
                 : '<i class="fa-solid fa-circle-xmark text-danger"></i> 尚未同步 Garmin');
 
-            if (bd.checkin) {
-                checkinFields.forEach(f => {
-                    const v = bd.checkin[f.key];
-                    const el = v && document.getElementById(`ck-${f.key}-${v}`);
-                    if (el) el.checked = true;
-                });
+            // 使用者正在修改還沒儲存時，不要用資料庫裡的分數蓋掉（例如背景同步後重新載入）
+            if (!checkinDirty) {
+                if (bd.checkin) {
+                    checkinFields.forEach(f => {
+                        const v = bd.checkin[f.key];
+                        const el = v && document.getElementById(`ck-${f.key}-${v}`);
+                        if (el) el.checked = true;
+                    });
+                    setCheckinStatus('今天已記錄', 'ok');
+                } else {
+                    setCheckinStatus('今天尚未記錄', 'muted');
+                }
+            }
+        }
+
+        // ---- 儲存今天感覺（不需要呼叫 AI） ----
+        let checkinDirty = false;
+
+        function setCheckinStatus(text, tone) {
+            const icons = { ok: 'fa-circle-check', warn: 'fa-circle-exclamation', error: 'fa-circle-xmark', muted: 'fa-circle-info' };
+            const el = document.getElementById('checkin-status');
+            el.className = `checkin-status checkin-${tone}`;
+            el.innerHTML = `<i class="fa-solid ${icons[tone]} me-1"></i>${esc(text)}`;
+        }
+
+        function markCheckinSaved() {
+            checkinDirty = false;
+            const now = new Date();
+            setCheckinStatus(`已儲存 ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`, 'ok');
+        }
+
+        document.getElementById('checkin-rows').addEventListener('change', () => {
+            checkinDirty = true;
+            setCheckinStatus('有變更尚未儲存', 'warn');
+        });
+
+        async function saveCheckin() {
+            const ck = readCheckin();
+            if (Object.values(ck).some(v => v === null)) { setCheckinStatus('請把四個項目都點選一個分數', 'warn'); return; }
+            const btn = document.getElementById('save-checkin-btn');
+            btn.disabled = true;
+            try {
+                await api('/api/checkin', { method: 'POST', body: JSON.stringify(ck) });
+                markCheckinSaved();
+            } catch (e) {
+                setCheckinStatus('儲存失敗：' + e.message, 'error');
+            } finally {
+                btn.disabled = false;
             }
         }
 
@@ -969,6 +1022,7 @@
             showLoading('AI 教練正在看你的數據...', '分別評估課表執行能力與身體日常狀態');
             try {
                 await api('/api/checkin', { method: 'POST', body: JSON.stringify(ck) });
+                markCheckinSaved();
                 const advice = await api('/api/coach/today', {
                     method: 'POST',
                     body: JSON.stringify({ planned: document.getElementById('planned-today').value })
